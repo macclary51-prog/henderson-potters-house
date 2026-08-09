@@ -86,7 +86,10 @@ button, input, textarea { font: inherit; }
 .quick-card p, .content-card p, .info-card p { color: var(--muted); font-size: .94rem; }
 
 .app-download { padding: 8px 0 44px; }
+.app-download > .container { display: grid; gap: 24px; }
 .app-download-card { overflow: hidden; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 290px; align-items: center; gap: 48px; padding: 46px 52px; color: #fff; border: 1px solid rgba(255,255,255,.13); border-radius: 28px; background: radial-gradient(circle at 88% 18%, rgba(242,106,50,.34), transparent 30%), linear-gradient(135deg, #07182c, #163d6a 62%, #224f78); box-shadow: 0 18px 42px rgba(7,24,44,.2); }
+.app-download-card--ios { background: radial-gradient(circle at 88% 18%, rgba(99,207,226,.3), transparent 31%), linear-gradient(135deg, #07182c, #17455f 58%, #286f81); }
+.app-download-card--ios .eyebrow { color: #dff9ff; background: rgba(255,255,255,.13); }
 .app-download-copy { position: relative; z-index: 1; }
 .app-download-copy h2 { max-width: 700px; margin: 0 0 15px; font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.05; }
 .app-download-copy > p:not(.app-install-note) { max-width: 680px; color: #dce8f4; }
@@ -95,6 +98,8 @@ button, input, textarea { font: inherit; }
 .app-download-button { gap: 10px; color: var(--navy-dark); background: #fff; box-shadow: 0 10px 24px rgba(0,0,0,.18); transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease; }
 .app-download-button svg { width: 23px; height: 23px; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .app-download-button:hover { transform: translateY(-2px); background: #f2f7fc; box-shadow: 0 14px 28px rgba(0,0,0,.24); }
+.app-download-button--ios { background: linear-gradient(135deg, #fff, #dff7fb); }
+.app-download-button--ios:hover { background: linear-gradient(135deg, #fff, #cceff5); }
 .app-install-note { margin-top: 13px; color: #bdcede; font-size: .82rem; }
 .app-qr-link { position: relative; z-index: 1; display: block; border-radius: 24px; transition: transform .2s ease, box-shadow .2s ease; }
 .app-qr-link:hover { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(0,0,0,.24); }
@@ -102,6 +107,8 @@ button, input, textarea { font: inherit; }
 .app-qr-frame { display: block; padding: 14px 14px 16px; background: #fff; color: var(--navy); border: 1px solid rgba(255,255,255,.7); border-radius: 24px; box-shadow: 0 14px 30px rgba(0,0,0,.2); text-align: center; }
 .app-qr-frame img { display: block; width: 100%; height: auto; border-radius: 14px; }
 .app-qr-frame strong { display: block; margin-top: 8px; font-size: .9rem; }
+.app-qr-frame small { display: block; margin-top: 2px; color: var(--muted); font-size: .72rem; font-weight: 700; }
+.app-qr-frame--ios { border-color: #c6edf4; box-shadow: 0 14px 30px rgba(2,31,45,.28); }
 
 .section { padding: 52px 0; }
 .section-heading { max-width: 720px; margin-bottom: 28px; }
