@@ -23,7 +23,7 @@
   <title>Home | The Henderson Potter's House</title>
 
   <link rel="stylesheet" href="style.css?v=5">
-  <link rel="stylesheet" href="home-content.css?v=1">
+  <link rel="stylesheet" href="home-content.css?v=2">
 </head>
 <body>
   <header class="site-header">
@@ -187,6 +187,34 @@
           <h3>Connect</h3>
           <p>Find the church and visit its official social pages.</p>
         </a>
+      </div>
+    </section>
+
+    <section class="home-services" aria-labelledby="homeServicesTitle">
+      <div class="container">
+        <div class="section-heading home-services-heading">
+          <div>
+            <span>Plan Your Visit</span>
+            <h2 id="homeServicesTitle">Service Times</h2>
+            <p>
+              Current weekly services, meeting times, and locations.
+            </p>
+          </div>
+
+          <a class="home-services-link" href="services.html">
+            View All Services
+          </a>
+        </div>
+
+        <div
+          class="home-services-grid"
+          id="homeServicesGrid"
+          aria-live="polite"
+        >
+          <div class="home-services-empty">
+            Loading service times...
+          </div>
+        </div>
       </div>
     </section>
 
@@ -452,6 +480,6 @@
   ></div>
 
   <script src="script.js"></script>
-  <script type="module" src="home-content.js?v=1"></script>
+  <script type="module" src="home-content.js?v=2"></script>
 </body>
 </html>

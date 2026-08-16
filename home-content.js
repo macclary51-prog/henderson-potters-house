@@ -22,6 +22,9 @@ import {
 const cardsGrid =
   document.getElementById("homeCardsGrid");
 
+const servicesGrid =
+  document.getElementById("homeServicesGrid");
+
 const pastorShell =
   document.getElementById("homePastorShell");
 
@@ -63,6 +66,7 @@ const toast =
 
 let currentUser = null;
 let currentCards = [];
+let currentServices = [];
 let toastTimer = null;
 
 
@@ -152,6 +156,162 @@ function timestampSeconds(value) {
   }
 
   return 0;
+}
+
+
+function serviceDayOrder(value) {
+  const day =
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  const days = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday"
+  ];
+
+  const index =
+    days.findIndex(function (name) {
+      return day.includes(name);
+    });
+
+  return index === -1
+    ? days.length
+    : index;
+}
+
+
+function serviceTimeOrder(value) {
+  const match =
+    String(value || "")
+      .trim()
+      .match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+
+  if (!match) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  let hour =
+    Number(match[1]) % 12;
+
+  const minute =
+    Number(match[2] || 0);
+
+  if (match[3].toLowerCase() === "pm") {
+    hour += 12;
+  }
+
+  return (hour * 60) + minute;
+}
+
+
+function createServiceCard(item) {
+  const data = item.data;
+  const card =
+    document.createElement("article");
+
+  card.className =
+    "home-service-card";
+
+  const tag =
+    document.createElement("span");
+
+  tag.className =
+    "home-service-tag";
+
+  tag.textContent =
+    "Church Service";
+
+  const heading =
+    document.createElement("h3");
+
+  heading.textContent =
+    data.title ||
+    "Church Service";
+
+  const schedule =
+    document.createElement("div");
+
+  schedule.className =
+    "home-service-schedule";
+
+  [data.day, data.time]
+    .filter(Boolean)
+    .forEach(function (value) {
+      const item =
+        document.createElement("span");
+
+      item.textContent = value;
+      schedule.appendChild(item);
+    });
+
+  card.append(
+    tag,
+    heading,
+    schedule
+  );
+
+  if (data.location) {
+    const location =
+      document.createElement("p");
+
+    location.className =
+      "home-service-location";
+
+    location.textContent =
+      data.location;
+
+    card.appendChild(location);
+  }
+
+  if (data.details) {
+    const details =
+      document.createElement("p");
+
+    details.className =
+      "home-service-details";
+
+    details.textContent =
+      data.details;
+
+    card.appendChild(details);
+  }
+
+  return card;
+}
+
+
+function renderServices() {
+  if (!servicesGrid) {
+    return;
+  }
+
+  servicesGrid.replaceChildren();
+
+  if (currentServices.length === 0) {
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "home-services-empty";
+
+    empty.textContent =
+      "Service times will appear here soon.";
+
+    servicesGrid.appendChild(empty);
+    return;
+  }
+
+  currentServices.forEach(function (item) {
+    servicesGrid.appendChild(
+      createServiceCard(item)
+    );
+  });
 }
 
 
@@ -664,6 +824,53 @@ onSnapshot(
 
     cardsGrid.innerHTML =
       '<div class="home-empty-state">Homepage information could not be loaded.</div>';
+  }
+);
+
+
+onSnapshot(
+  collection(db, "services"),
+  function (snapshot) {
+    currentServices =
+      snapshot.docs
+        .map(function (documentSnapshot) {
+          return {
+            id: documentSnapshot.id,
+            data: documentSnapshot.data()
+          };
+        })
+        .sort(function (a, b) {
+          const dayDifference =
+            serviceDayOrder(a.data.day) -
+            serviceDayOrder(b.data.day);
+
+          if (dayDifference !== 0) {
+            return dayDifference;
+          }
+
+          const timeDifference =
+            serviceTimeOrder(a.data.time) -
+            serviceTimeOrder(b.data.time);
+
+          if (timeDifference !== 0) {
+            return timeDifference;
+          }
+
+          return String(a.data.title || "")
+            .localeCompare(
+              String(b.data.title || "")
+            );
+        });
+
+    renderServices();
+  },
+  function (error) {
+    console.error(error);
+
+    if (servicesGrid) {
+      servicesGrid.innerHTML =
+        '<div class="home-services-empty">Service times could not be loaded. Select View All Services to see the full schedule.</div>';
+    }
   }
 );
 
