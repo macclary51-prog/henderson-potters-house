@@ -873,14 +873,24 @@ if (editorForm) {
     } catch (error) {
       console.error(error);
 
+      const permissionDenied =
+        error.code === "permission-denied" ||
+        error.code === "firestore/permission-denied";
+
+      const errorMessage = permissionDenied
+        ? "Your staff account does not have permission to save this item. Sign out and back in, then try again."
+        : "The item could not be saved. Check your connection and try again.";
+
       showStatus(
         formStatus,
-        "The item could not be saved. Check your connection and try again.",
+        errorMessage,
         true
       );
 
       showToast(
-        "The item could not be saved.",
+        permissionDenied
+          ? "Your staff account cannot save this item."
+          : "The item could not be saved.",
         true
       );
     } finally {

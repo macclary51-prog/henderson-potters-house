@@ -392,6 +392,10 @@ function createStaffBar(user, profile) {
       text: "Edit Events"
     },
     {
+      href: "services.html",
+      text: "Edit Services"
+    },
+    {
       href: "sermons.html",
       text: "Edit Sermons"
     },
@@ -406,11 +410,6 @@ function createStaffBar(user, profile) {
   ];
 
   if (profile.role === "pastor") {
-    links.push({
-      href: "services.html",
-      text: "Edit Services"
-    });
-
     links.push({
       href: "giving.html",
       text: "Edit Giving"
@@ -574,10 +573,7 @@ onAuthStateChanged(
         "Staff";
 
       if (staffLink) {
-        staffLink.href =
-          profile.role === "pastor"
-            ? "services.html"
-            : "announcements.html";
+        staffLink.href = "services.html";
 
         staffLink.textContent =
           `Staff: ${displayName}`;

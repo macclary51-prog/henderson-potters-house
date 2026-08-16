@@ -858,7 +858,7 @@ staffSiteModule.type =
   "module";
 
 staffSiteModule.src =
-  "staff-site.js?v=8";
+  "staff-site.js?v=9";
 
 document.body.appendChild(
   staffSiteModule
