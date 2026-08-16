@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' https://www.gstatic.com https://www.googletagmanager.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net; img-src 'self' data: https:; media-src 'self' https:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://hendersonpottershouse-aa92d.firebaseapp.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; form-action 'self'; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+  >
+  <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <meta
     name="viewport"
@@ -18,7 +23,7 @@
   </title>
 
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="prayer.css?v=12">
+  <link rel="stylesheet" href="prayer.css?v=13">
 </head>
 
 <body>
@@ -229,7 +234,14 @@
               </p>
             </div>
 
-            <div class="prayer-count" id="prayerCount">
+            <div
+              aria-atomic="true"
+              aria-live="polite"
+              class="prayer-count"
+              id="prayerCount"
+              role="status"
+              tabindex="-1"
+            >
               0 requests
             </div>
           </div>
@@ -242,6 +254,15 @@
               Loading prayer requests...
             </div>
           </div>
+
+          <button
+            class="button button-secondary prayer-load-more"
+            id="prayerLoadMoreButton"
+            type="button"
+            hidden
+          >
+            Load Older Requests
+          </button>
         </div>
       </div>
     </section>
@@ -280,7 +301,7 @@
 
   <script
     type="module"
-    src="prayer.js?v=11"
+    src="prayer.js?v=12"
   ></script>
 </body>
 </html>

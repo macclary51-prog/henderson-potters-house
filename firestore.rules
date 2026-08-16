@@ -1,0 +1,418 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function staffPath() {
+      return /databases/$(database)/documents/staff/$(request.auth.uid);
+    }
+
+    function hasStaffRecord() {
+      return signedIn() && exists(staffPath());
+    }
+
+    function activeStaff() {
+      return hasStaffRecord()
+        && get(staffPath()).data.active == true
+        && get(staffPath()).data.role in ['pastor', 'ministry'];
+    }
+
+    function isPastor() {
+      return activeStaff()
+        && get(staffPath()).data.role == 'pastor';
+    }
+
+    function requiredString(data, key, maximum) {
+      return key in data
+        && data[key] is string
+        && data[key].size() > 0
+        && data[key].size() <= maximum;
+    }
+
+    function optionalString(data, key, maximum) {
+      return !(key in data)
+        || (data[key] is string && data[key].size() <= maximum);
+    }
+
+    function validCreateAudit(data) {
+      return data.createdAt == request.time
+        && data.updatedAt == request.time
+        && data.createdBy == request.auth.uid
+        && data.updatedBy == request.auth.uid;
+    }
+
+    function validUpdateAudit(data) {
+      return data.updatedAt == request.time
+        && data.updatedBy == request.auth.uid;
+    }
+
+    function validOptionalCreateAudit(data) {
+      return data.updatedAt == request.time
+        && data.updatedBy == request.auth.uid
+        && (
+          (
+            !('createdAt' in data)
+            && !('createdBy' in data)
+          )
+          || (
+            data.createdAt == request.time
+            && data.createdBy == request.auth.uid
+          )
+        );
+    }
+
+    function validAnnouncement(data) {
+      return requiredString(data, 'title', 120)
+        && requiredString(data, 'category', 80)
+        && requiredString(data, 'details', 3000)
+        && optionalString(data, 'imageUrl', 1000)
+        && optionalString(data, 'imageAlt', 200)
+        && optionalString(data, 'videoUrl', 1000);
+    }
+
+    function validEvent(data) {
+      return requiredString(data, 'title', 120)
+        && requiredString(data, 'date', 100)
+        && requiredString(data, 'time', 80)
+        && requiredString(data, 'location', 200)
+        && requiredString(data, 'details', 3000)
+        && optionalString(data, 'imageUrl', 1000)
+        && optionalString(data, 'imageAlt', 200)
+        && optionalString(data, 'videoUrl', 1000);
+    }
+
+    function validService(data) {
+      return requiredString(data, 'title', 120)
+        && requiredString(data, 'day', 80)
+        && requiredString(data, 'time', 80)
+        && requiredString(data, 'location', 200)
+        && requiredString(data, 'details', 3000);
+    }
+
+    function validSermon(data) {
+      return requiredString(data, 'title', 120)
+        && requiredString(data, 'speaker', 120)
+        && requiredString(data, 'date', 40)
+        && optionalString(data, 'videoUrl', 1000)
+        && requiredString(data, 'details', 3000)
+        && optionalString(data, 'imageUrl', 1000)
+        && optionalString(data, 'imageAlt', 200);
+    }
+
+    function validMinistry(data) {
+      return requiredString(data, 'name', 120)
+        && requiredString(data, 'leader', 120)
+        && requiredString(data, 'schedule', 160)
+        && requiredString(data, 'details', 3000)
+        && optionalString(data, 'imageUrl', 1000)
+        && optionalString(data, 'imageAlt', 200)
+        && optionalString(data, 'videoUrl', 1000);
+    }
+
+    match /staff/{userId} {
+      allow read: if signedIn()
+        && (request.auth.uid == userId || isPastor());
+
+      allow create: if isPastor()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'email',
+          'role',
+          'active',
+          'createdAt',
+          'updatedAt',
+          'createdBy',
+          'updatedBy'
+        ])
+        && requiredString(request.resource.data, 'name', 100)
+        && requiredString(request.resource.data, 'email', 254)
+        && request.resource.data.role == 'ministry'
+        && request.resource.data.active == true
+        && validCreateAudit(request.resource.data);
+
+      allow update: if isPastor()
+        && resource.data.role == 'ministry'
+        && request.resource.data.role == 'ministry'
+        && request.resource.data.active is bool
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'active',
+          'updatedAt',
+          'updatedBy'
+        ])
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if false;
+    }
+
+    match /announcements/{documentId} {
+      allow read: if true;
+
+      allow create: if activeStaff()
+        && request.resource.data.keys().hasOnly([
+          'title', 'category', 'details', 'imageUrl', 'imageAlt', 'videoUrl',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+        ])
+        && validAnnouncement(request.resource.data)
+        && validCreateAudit(request.resource.data);
+
+      allow update: if activeStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'category', 'details', 'imageUrl', 'imageAlt', 'videoUrl',
+          'updatedAt', 'updatedBy'
+        ])
+        && validAnnouncement(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if activeStaff();
+    }
+
+    match /events/{documentId} {
+      allow read: if true;
+
+      allow create: if activeStaff()
+        && request.resource.data.keys().hasOnly([
+          'title', 'date', 'time', 'location', 'details',
+          'imageUrl', 'imageAlt', 'videoUrl',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+        ])
+        && validEvent(request.resource.data)
+        && validCreateAudit(request.resource.data);
+
+      allow update: if activeStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'date', 'time', 'location', 'details',
+          'imageUrl', 'imageAlt', 'videoUrl', 'updatedAt', 'updatedBy'
+        ])
+        && validEvent(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if activeStaff();
+    }
+
+    match /services/{documentId} {
+      allow read: if true;
+
+      allow create: if activeStaff()
+        && request.resource.data.keys().hasOnly([
+          'title', 'day', 'time', 'location', 'details',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+        ])
+        && validService(request.resource.data)
+        && validCreateAudit(request.resource.data);
+
+      allow update: if activeStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'day', 'time', 'location', 'details',
+          'updatedAt', 'updatedBy'
+        ])
+        && validService(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if activeStaff();
+    }
+
+    match /sermons/{documentId} {
+      allow read: if true;
+
+      allow create: if activeStaff()
+        && request.resource.data.keys().hasOnly([
+          'title', 'speaker', 'date', 'videoUrl', 'details',
+          'imageUrl', 'imageAlt',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+        ])
+        && validSermon(request.resource.data)
+        && validCreateAudit(request.resource.data);
+
+      allow update: if activeStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'speaker', 'date', 'videoUrl', 'details',
+          'imageUrl', 'imageAlt', 'updatedAt', 'updatedBy'
+        ])
+        && validSermon(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if activeStaff();
+    }
+
+    match /ministries/{documentId} {
+      allow read: if true;
+
+      allow create: if activeStaff()
+        && request.resource.data.keys().hasOnly([
+          'name', 'leader', 'schedule', 'details',
+          'imageUrl', 'imageAlt', 'videoUrl',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+        ])
+        && validMinistry(request.resource.data)
+        && validCreateAudit(request.resource.data);
+
+      allow update: if activeStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'leader', 'schedule', 'details',
+          'imageUrl', 'imageAlt', 'videoUrl', 'updatedAt', 'updatedBy'
+        ])
+        && validMinistry(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if activeStaff();
+    }
+
+    function validGiving(data) {
+      return requiredString(data, 'title', 120)
+        && optionalString(data, 'message', 1500)
+        && optionalString(data, 'phone', 80)
+        && optionalString(data, 'zelle', 150)
+        && optionalString(data, 'cashApp', 100)
+        && optionalString(data, 'cashAppLink', 500)
+        && optionalString(data, 'otherInstructions', 2000);
+    }
+
+    match /siteSettings/giving {
+      allow read: if true;
+
+      allow create: if isPastor()
+        && request.resource.data.keys().hasOnly([
+          'title', 'message', 'phone', 'zelle', 'cashApp', 'cashAppLink',
+          'otherInstructions', 'updatedAt', 'updatedBy'
+        ])
+        && validGiving(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow update: if isPastor()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'message', 'phone', 'zelle', 'cashApp', 'cashAppLink',
+          'otherInstructions', 'updatedAt', 'updatedBy'
+        ])
+        && validGiving(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if false;
+    }
+
+    function starterLink(documentId) {
+      return documentId in [
+        'church-location',
+        'church-facebook',
+        'church-instagram',
+        'church-youtube',
+        'church-phone'
+      ];
+    }
+
+    function validSiteLink(data, documentId) {
+      return (
+        starterLink(documentId)
+        && data.keys().hasOnly(['hidden', 'updatedAt', 'updatedBy'])
+        && data.hidden == true
+      )
+      || (
+        requiredString(data, 'type', 20)
+        && data.type in [
+          'location', 'facebook', 'instagram', 'youtube', 'tiktok',
+          'x', 'website', 'email', 'phone', 'other'
+        ]
+        && requiredString(data, 'title', 120)
+        && requiredString(data, 'url', 500)
+        && optionalString(data, 'description', 500)
+        && data.hidden is bool
+      );
+    }
+
+    match /siteLinks/{documentId} {
+      allow read: if true;
+
+      allow create: if isPastor()
+        && request.resource.data.keys().hasOnly([
+          'type', 'title', 'url', 'description', 'hidden',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+        ])
+        && validSiteLink(request.resource.data, documentId)
+        && validOptionalCreateAudit(request.resource.data);
+
+      allow update: if isPastor()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'type', 'title', 'url', 'description', 'hidden',
+          'updatedAt', 'updatedBy'
+        ])
+        && validSiteLink(request.resource.data, documentId)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if isPastor();
+    }
+
+    function validHomeHighlight(data) {
+      return optionalString(data, 'tag', 80)
+        && requiredString(data, 'title', 120)
+        && requiredString(data, 'details', 3000)
+        && data.displayOrder is int
+        && data.displayOrder >= 1
+        && data.displayOrder <= 1000
+        && optionalString(data, 'buttonText', 80)
+        && optionalString(data, 'buttonUrl', 500);
+    }
+
+    match /homeHighlights/{documentId} {
+      allow read: if true;
+
+      allow create: if isPastor()
+        && request.resource.data.keys().hasOnly([
+          'tag', 'title', 'details', 'displayOrder', 'buttonText', 'buttonUrl',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+        ])
+        && validHomeHighlight(request.resource.data)
+        && validCreateAudit(request.resource.data);
+
+      allow update: if isPastor()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'tag', 'title', 'details', 'displayOrder', 'buttonText', 'buttonUrl',
+          'updatedAt', 'updatedBy'
+        ])
+        && validHomeHighlight(request.resource.data)
+        && validUpdateAudit(request.resource.data);
+
+      allow delete: if isPastor();
+    }
+
+    match /prayerRequests/{documentId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'name',
+          'contact',
+          'prayerText',
+          'confidential',
+          'status',
+          'source',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'name',
+          'contact',
+          'prayerText',
+          'confidential',
+          'status',
+          'source',
+          'createdAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.contact is string
+        && request.resource.data.contact.size() <= 150
+        && request.resource.data.prayerText is string
+        && request.resource.data.prayerText.size() >= 5
+        && request.resource.data.prayerText.size() <= 3000
+        && request.resource.data.confidential is bool
+        && request.resource.data.status == 'new'
+        && request.resource.data.source == 'website'
+        && request.resource.data.createdAt == request.time;
+
+      allow read, delete: if activeStaff();
+      allow update: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

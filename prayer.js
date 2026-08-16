@@ -14,6 +14,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -52,14 +53,21 @@ const requestList =
 const countLabel =
   document.getElementById("prayerCount");
 
+const loadMoreButton =
+  document.getElementById("prayerLoadMoreButton");
+
 const toast =
   document.getElementById("prayerToast");
 
 let currentUser = null;
 let currentStaff = null;
 let currentRequests = [];
+let hasMoreRequests = false;
 let requestUnsubscribe = null;
 let toastTimer = null;
+
+const REQUEST_PAGE_SIZE = 50;
+let requestLimit = REQUEST_PAGE_SIZE;
 
 
 function cleanText(value) {
@@ -387,12 +395,27 @@ function createRequestCard(item) {
 function renderRequests() {
   requestList.replaceChildren();
 
-  countLabel.textContent =
-    `${currentRequests.length} ${
-      currentRequests.length === 1
-        ? "request"
-        : "requests"
-    }`;
+  countLabel.textContent = hasMoreRequests
+    ? `${currentRequests.length}+ requests loaded`
+    : `${currentRequests.length} ${
+        currentRequests.length === 1
+          ? "request"
+          : "requests"
+      }`;
+
+  if (loadMoreButton) {
+    const moveFocus =
+      !hasMoreRequests
+      && document.activeElement ===
+        loadMoreButton;
+
+    loadMoreButton.hidden =
+      !hasMoreRequests;
+
+    if (moveFocus) {
+      countLabel.focus();
+    }
+  }
 
   if (currentRequests.length === 0) {
     const empty =
@@ -419,7 +442,21 @@ function renderRequests() {
 }
 
 
-function subscribeToRequests() {
+function loadOlderRequests() {
+  if (!loadMoreButton) {
+    return;
+  }
+
+  loadMoreButton.disabled = true;
+  loadMoreButton.textContent =
+    "Loading...";
+
+  requestLimit += REQUEST_PAGE_SIZE;
+  subscribeToRequests(true);
+}
+
+
+function subscribeToRequests(isLoadingMore = false) {
   if (requestUnsubscribe) {
     requestUnsubscribe();
   }
@@ -428,11 +465,18 @@ function subscribeToRequests() {
     onSnapshot(
       query(
         collection(db, "prayerRequests"),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
+        limit(requestLimit + 1)
       ),
       function (snapshot) {
+        hasMoreRequests =
+          snapshot.docs.length >
+          requestLimit;
+
         currentRequests =
-          snapshot.docs.map(
+          snapshot.docs
+            .slice(0, requestLimit)
+            .map(
             function (documentSnapshot) {
               return {
                 id: documentSnapshot.id,
@@ -442,12 +486,38 @@ function subscribeToRequests() {
           );
 
         renderRequests();
+
+        if (isLoadingMore && loadMoreButton) {
+          loadMoreButton.disabled = false;
+          loadMoreButton.textContent =
+            "Load Older Requests";
+        }
       },
       function (error) {
         console.error(error);
 
-        requestList.innerHTML =
-          '<div class="prayer-empty">Prayer requests could not be loaded. Refresh the page and try again.</div>';
+        if (isLoadingMore) {
+          requestLimit = Math.max(
+            REQUEST_PAGE_SIZE,
+            requestLimit - REQUEST_PAGE_SIZE
+          );
+
+          if (loadMoreButton) {
+            loadMoreButton.disabled = false;
+            loadMoreButton.textContent =
+              "Load Older Requests";
+          }
+
+          showToast(
+            "Older prayer requests could not be loaded.",
+            true
+          );
+
+          subscribeToRequests();
+        } else {
+          requestList.innerHTML =
+            '<div class="prayer-empty">Prayer requests could not be loaded. Refresh the page and try again.</div>';
+        }
       }
     );
 }
@@ -526,6 +596,13 @@ function disableStaffInbox() {
   currentRequests =
     [];
 
+  requestLimit = REQUEST_PAGE_SIZE;
+  hasMoreRequests = false;
+
+  if (loadMoreButton) {
+    loadMoreButton.hidden = true;
+  }
+
   if (requestUnsubscribe) {
     requestUnsubscribe();
     requestUnsubscribe = null;
@@ -585,6 +662,18 @@ requestForm.addEventListener(
       );
 
       requestForm.elements.prayerText.focus();
+      return;
+    }
+
+    if (
+      name.length > 100 ||
+      contact.length > 150
+    ) {
+      showFormStatus(
+        "Keep your name under 100 characters and contact information under 150 characters.",
+        true
+      );
+
       return;
     }
 
@@ -656,9 +745,6 @@ requestForm.addEventListener(
       ) {
         message =
           "The prayer request service is temporarily unavailable. Check your connection and try again.";
-      } else if (error.code) {
-        message =
-          `The prayer request could not be submitted (${error.code}).`;
       }
 
       showFormStatus(
@@ -674,6 +760,14 @@ requestForm.addEventListener(
     }
   }
 );
+
+
+if (loadMoreButton) {
+  loadMoreButton.addEventListener(
+    "click",
+    loadOlderRequests
+  );
+}
 
 
 

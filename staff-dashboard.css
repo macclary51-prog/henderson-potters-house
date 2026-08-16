@@ -765,6 +765,15 @@ svg {
   font-weight: 600;
 }
 
+.staff-password-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--staff-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .staff-field input,
 .staff-field textarea {
   width: 100%;

@@ -219,6 +219,11 @@
   gap: 14px;
 }
 
+.prayer-load-more {
+  display: block;
+  margin: 22px auto 0;
+}
+
 .prayer-request-card {
   padding: 20px;
   background: #fbfcfd;

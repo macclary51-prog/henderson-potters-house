@@ -340,6 +340,15 @@
   color: var(--navy);
 }
 
+.staff-password-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .staff-inline-account-list {
   display: grid;
   gap: 10px;

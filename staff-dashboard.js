@@ -111,6 +111,17 @@ function normalizeRole(role) {
 }
 
 
+function isStrongTemporaryPassword(value) {
+  const password = String(value || "");
+
+  return password.length >= 12
+    && password.length <= 128
+    && /[a-z]/.test(password)
+    && /[A-Z]/.test(password)
+    && /\d/.test(password);
+}
+
+
 function getInitials(name) {
   const parts = String(name || "")
     .trim()
@@ -1039,6 +1050,16 @@ if (accountForm) {
       .getElementById("ministryPassword")
       .value;
 
+    if (!isStrongTemporaryPassword(password)) {
+      showStatus(
+        accountMessage,
+        "Use at least 12 characters with an uppercase letter, a lowercase letter, and a number.",
+        true
+      );
+
+      return;
+    }
+
     const submitButton =
       accountForm.querySelector('[type="submit"]');
 
@@ -1110,7 +1131,7 @@ if (accountForm) {
           "An account already exists with that email address.";
       } else if (error.code === "auth/weak-password") {
         message =
-          "The temporary password must contain at least 6 characters.";
+          "Use at least 12 characters with an uppercase letter, a lowercase letter, and a number.";
       } else if (error.code === "auth/invalid-email") {
         message =
           "Enter a valid email address.";
