@@ -137,7 +137,7 @@ function addStyles() {
       display: grid;
       place-items: center;
       color: #ffffff;
-      background: linear-gradient(135deg, #e03a2f, #f26a32);
+      background: linear-gradient(135deg, #4169e1, #27408b);
       border-radius: 50%;
       font-size: 0.75rem;
       font-weight: 900;
@@ -203,12 +203,12 @@ function addStyles() {
     }
 
     .persistent-staff-actions .primary {
-      background: linear-gradient(135deg, #e03a2f, #f26a32);
+      background: linear-gradient(135deg, #4169e1, #27408b);
       border-color: transparent;
     }
 
     .nav-links a[data-staff-navigation="true"] {
-      color: #e03a2f;
+      color: #c9342f;
     }
 
     @media (max-width: 820px) {

@@ -14,6 +14,7 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
@@ -122,6 +123,70 @@ function isStrongTemporaryPassword(value) {
 }
 
 
+function createBootstrapPassword() {
+  const lowercase =
+    "abcdefghijkmnopqrstuvwxyz";
+
+  const uppercase =
+    "ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+  const digits =
+    "23456789";
+
+  const all =
+    lowercase + uppercase + digits;
+
+  const randomIndex = function (maximum) {
+    const values =
+      new Uint32Array(1);
+
+    crypto.getRandomValues(values);
+
+    return values[0] % maximum;
+  };
+
+  const characters = [
+    lowercase[randomIndex(lowercase.length)],
+    uppercase[randomIndex(uppercase.length)],
+    digits[randomIndex(digits.length)]
+  ];
+
+  while (characters.length < 32) {
+    characters.push(
+      all[randomIndex(all.length)]
+    );
+  }
+
+  for (
+    let index = characters.length - 1;
+    index > 0;
+    index -= 1
+  ) {
+    const swapIndex =
+      randomIndex(index + 1);
+
+    [
+      characters[index],
+      characters[swapIndex]
+    ] = [
+      characters[swapIndex],
+      characters[index]
+    ];
+  }
+
+  const password =
+    characters.join("");
+
+  if (!isStrongTemporaryPassword(password)) {
+    throw new Error(
+      "Secure bootstrap password generation failed."
+    );
+  }
+
+  return password;
+}
+
+
 function getInitials(name) {
   const parts = String(name || "")
     .trim()
@@ -196,6 +261,11 @@ function openTab(tabName, options = {}) {
     const isActive = button.dataset.tab === tabName;
 
     button.classList.toggle("active", isActive);
+    button.setAttribute(
+      "aria-selected",
+      String(isActive)
+    );
+    button.tabIndex = isActive ? 0 : -1;
 
     if (isActive) {
       button.setAttribute("aria-current", "page");
@@ -230,6 +300,31 @@ function openTab(tabName, options = {}) {
 document.querySelectorAll("[data-tab]").forEach(function (button) {
   button.addEventListener("click", function () {
     openTab(button.dataset.tab);
+  });
+
+  button.addEventListener("keydown", function (event) {
+    const tabs = Array.from(
+      document.querySelectorAll("[data-tab]")
+    );
+    const currentIndex = tabs.indexOf(button);
+    let nextIndex = currentIndex;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = tabs.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    openTab(nextTab.dataset.tab, { scroll: false });
+    nextTab.focus();
   });
 });
 
@@ -938,6 +1033,42 @@ function renderMinistryAccounts(snapshot) {
     const actions = document.createElement("div");
     actions.className = "staff-manage-actions";
 
+    const resetButton = document.createElement("button");
+    resetButton.type = "button";
+    resetButton.className = "staff-small-button edit";
+    resetButton.textContent = "Send Password Reset";
+    resetButton.disabled = !account.data.email;
+
+    resetButton.addEventListener("click", async function () {
+      const emailAddress = String(account.data.email || "").trim();
+
+      if (!emailAddress) {
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Send a Firebase password-reset email to ${emailAddress}?`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      resetButton.disabled = true;
+
+      try {
+        await sendPasswordResetEmail(auth, emailAddress);
+        showToast("Password-reset email sent.");
+      } catch (error) {
+        console.error("Ministry password reset failed:", error);
+        window.alert(
+          "The password-reset email could not be sent. Check the address and try again."
+        );
+      } finally {
+        resetButton.disabled = false;
+      }
+    });
+
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
     toggleButton.className =
@@ -994,7 +1125,7 @@ function renderMinistryAccounts(snapshot) {
       }
     });
 
-    actions.appendChild(toggleButton);
+    actions.append(resetButton, toggleButton);
     card.append(head, actions);
     ministryAccountList.appendChild(card);
   });
@@ -1044,27 +1175,18 @@ if (accountForm) {
     const email = document
       .getElementById("ministryEmail")
       .value
-      .trim();
+      .trim()
+      .toLowerCase();
 
-    const password = document
-      .getElementById("ministryPassword")
-      .value;
-
-    if (!isStrongTemporaryPassword(password)) {
-      showStatus(
-        accountMessage,
-        "Use at least 12 characters with an uppercase letter, a lowercase letter, and a number.",
-        true
-      );
-
-      return;
-    }
+    const password =
+      createBootstrapPassword();
 
     const submitButton =
       accountForm.querySelector('[type="submit"]');
 
     let secondaryApp = null;
     let createdUser = null;
+    let staffRecordCreated = false;
 
     submitButton.disabled = true;
     submitButton.textContent = "Creating Account…";
@@ -1102,20 +1224,49 @@ if (accountForm) {
         }
       );
 
+      staffRecordCreated = true;
+
       await signOut(secondaryAuth);
+
+      let resetEmailSent = true;
+
+      try {
+        await sendPasswordResetEmail(
+          auth,
+          email
+        );
+      } catch (resetError) {
+        resetEmailSent = false;
+
+        console.error(
+          "Ministry password setup email failed:",
+          resetError
+        );
+      }
 
       accountForm.reset();
 
       showStatus(
         accountMessage,
-        "Ministry account created. Give the member their email and temporary password."
+        resetEmailSent
+          ? "Ministry account created. Firebase sent the member a secure password-setup email."
+          : "Ministry account created, but the password-setup email could not be sent. Use Send Password Reset beside the account to try again.",
+        !resetEmailSent
       );
 
-      showToast("Ministry account created.");
+      showToast(
+        resetEmailSent
+          ? "Ministry account created and setup email sent."
+          : "Account created; setup email needs to be resent.",
+        !resetEmailSent
+      );
     } catch (error) {
       console.error(error);
 
-      if (createdUser) {
+      if (
+        createdUser &&
+        !staffRecordCreated
+      ) {
         try {
           await deleteUser(createdUser);
         } catch (cleanupError) {
@@ -1131,7 +1282,7 @@ if (accountForm) {
           "An account already exists with that email address.";
       } else if (error.code === "auth/weak-password") {
         message =
-          "Use at least 12 characters with an uppercase letter, a lowercase letter, and a number.";
+          "Firebase rejected the secure bootstrap password. Review the Firebase password policy.";
       } else if (error.code === "auth/invalid-email") {
         message =
           "Enter a valid email address.";
@@ -1235,9 +1386,6 @@ onAuthStateChanged(auth, async function (user) {
 
     configureRoleAccess(profile);
     subscribeToContent();
-
-    document.getElementById("year").textContent =
-      new Date().getFullYear();
 
     loadingScreen.hidden = true;
     dashboardContent.hidden = false;

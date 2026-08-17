@@ -41,7 +41,6 @@ const staffInitials = document.getElementById("staffInlineInitials");
 const addButton = document.getElementById("staffInlineAddButton");
 const headingAddButton = document.getElementById("staffInlineHeadingAdd");
 const signOutButton = document.getElementById("staffInlineSignOutButton");
-const accountsButton = document.getElementById("staffInlineAccountsButton");
 const editor = document.getElementById("staffInlineEditor");
 const editorForm = document.getElementById("staffInlineForm");
 const formMode = document.getElementById("staffInlineFormMode");
@@ -52,11 +51,22 @@ const closeButton = document.getElementById("staffInlineCloseButton");
 const formStatus = document.getElementById("staffInlineStatus");
 const toast = document.getElementById("staffInlineToast");
 
-const accountsModal = document.getElementById("staffInlineAccountsModal");
-const accountsClose = document.getElementById("staffInlineAccountsClose");
-const accountForm = document.getElementById("staffInlineAccountForm");
-const accountStatus = document.getElementById("staffInlineAccountStatus");
-const accountList = document.getElementById("staffInlineAccountList");
+/*
+  Account-management markup must not be present for public visitors. Remove
+  any legacy server-shipped copy, then construct it only after the caller has
+  been verified as an active pastor.
+*/
+document.getElementById("staffInlineAccountsButton")?.remove();
+document.getElementById("staffInlineAccountsModal")?.remove();
+
+let accountsButton = null;
+let accountsModal = null;
+let accountsClose = null;
+let accountForm = null;
+let accountStatus = null;
+let accountList = null;
+let accountsReturnFocus = null;
+let accountsPreviousBodyOverflow = null;
 
 let currentUser = null;
 let currentStaff = null;
@@ -65,8 +75,42 @@ let accountUnsubscribe = null;
 let toastTimer = null;
 
 
+const CONTENT_STATES = {
+  announcements: {
+    empty: "No announcements have been posted yet.",
+    error: "Announcements could not be loaded right now. Please try again later."
+  },
+  events: {
+    empty: "No upcoming events are currently listed.",
+    error: "Event information could not be loaded right now. Please try again later."
+  },
+  services: {
+    empty: "No service times are currently listed.",
+    error: "Service information could not be loaded right now. Please try again later."
+  },
+  sermons: {
+    empty: "Sermons will appear here when available.",
+    error: "Sermons could not be loaded right now. Please try again later."
+  },
+  ministries: {
+    empty: "No ministry information has been posted yet.",
+    error: "Ministry information could not be loaded right now. Please try again later."
+  }
+};
+
+
 function normalizeRole(role) {
   return String(role || "").trim().toLowerCase();
+}
+
+
+function hasVerifiedPastorSession() {
+  return Boolean(
+    currentStaff?.active === true &&
+    currentStaff?.role === "pastor" &&
+    currentUser &&
+    auth.currentUser?.uid === currentUser.uid
+  );
 }
 
 
@@ -221,6 +265,457 @@ function getSortTime(data) {
 }
 
 
+function schemaText(value, maximum = 3000) {
+  return String(value || "")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
+    .trim()
+    .slice(0, maximum);
+}
+
+
+function strictIsoDate(value) {
+  const text = String(value || "").trim();
+
+  if (text.length !== 10) {
+    return "";
+  }
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+
+  if (!match) {
+    return "";
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "";
+  }
+
+  return text;
+}
+
+
+function strictEventDate(value) {
+  const isoDate = strictIsoDate(value);
+
+  if (isoDate) {
+    return isoDate;
+  }
+
+  const text = String(value || "").trim();
+
+  if (text.length > 50) {
+    return "";
+  }
+
+  const match = /^(?:(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),\s+)?(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})$/i.exec(text);
+
+  if (!match) {
+    return "";
+  }
+
+  const weekdays = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday"
+  ];
+  const months = {
+    january: 0,
+    february: 1,
+    march: 2,
+    april: 3,
+    may: 4,
+    june: 5,
+    july: 6,
+    august: 7,
+    september: 8,
+    october: 9,
+    november: 10,
+    december: 11
+  };
+  const expectedWeekday = String(match[1] || "").toLowerCase();
+  const month = months[String(match[2]).toLowerCase()];
+  const day = Number(match[3]);
+  const year = Number(match[4]);
+  const date = new Date(Date.UTC(year, month, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month ||
+    date.getUTCDate() !== day ||
+    (
+      expectedWeekday &&
+      weekdays[date.getUTCDay()] !== expectedWeekday
+    )
+  ) {
+    return "";
+  }
+
+  return [
+    String(year).padStart(4, "0"),
+    String(month + 1).padStart(2, "0"),
+    String(day).padStart(2, "0")
+  ].join("-");
+}
+
+
+function strictSchemaTime(value) {
+  const text = String(value || "").trim();
+
+  if (text.length > 20) {
+    return "";
+  }
+
+  const match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i.exec(text);
+
+  if (!match) {
+    return "";
+  }
+
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const second = Number(match[3] || 0);
+  const meridiem = String(match[4] || "").toUpperCase();
+
+  if (minute > 59 || second > 59) {
+    return "";
+  }
+
+  if (meridiem) {
+    if (hour < 1 || hour > 12) {
+      return "";
+    }
+
+    hour %= 12;
+
+    if (meridiem === "PM") {
+      hour += 12;
+    }
+  } else if (hour > 23) {
+    return "";
+  }
+
+  return [hour, minute, second]
+    .map(function (part) {
+      return String(part).padStart(2, "0");
+    })
+    .join(":");
+}
+
+
+function timestampIso(value) {
+  try {
+    const date = value && typeof value.toDate === "function"
+      ? value.toDate()
+      : null;
+
+    return date && Number.isFinite(date.getTime())
+      ? date.toISOString()
+      : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+
+function canonicalPageUrl() {
+  const candidate =
+    document.querySelector('link[rel="canonical"]')?.href ||
+    window.location.href;
+
+  try {
+    const url = new URL(candidate, window.location.href);
+
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return "";
+    }
+
+    url.hash = "";
+    url.search = "";
+    return url.href;
+  } catch (error) {
+    return "";
+  }
+}
+
+
+function schemaItemId(item) {
+  const pageUrl = canonicalPageUrl();
+
+  return pageUrl
+    ? `${pageUrl}#${collectionName}-${encodeURIComponent(item.id)}`
+    : "";
+}
+
+
+function addSharedSchemaFields(node, item) {
+  const itemId = schemaItemId(item);
+  const created = timestampIso(item.data.createdAt);
+  const updated = timestampIso(item.data.updatedAt);
+
+  if (itemId) {
+    node["@id"] = itemId;
+    node.url = itemId;
+  }
+
+  if (created) {
+    node.dateCreated = created;
+  }
+
+  if (updated) {
+    node.dateModified = updated;
+  }
+
+  const imageUrl = getSafeMediaUrl(item.data.imageUrl);
+
+  if (imageUrl) {
+    node.image = imageUrl;
+  }
+
+  return node;
+}
+
+
+function announcementSchema(item) {
+  const title = schemaText(item.data.title, 120);
+  const details = schemaText(item.data.details);
+
+  if (!title) {
+    return null;
+  }
+
+  const article = addSharedSchemaFields({
+    "@type": "Article",
+    headline: title
+  }, item);
+
+  if (details) {
+    article.articleBody = details;
+  }
+
+  const category = schemaText(item.data.category, 80);
+
+  if (category) {
+    article.articleSection = category;
+  }
+
+  if (article.dateCreated) {
+    article.datePublished = article.dateCreated;
+  }
+
+  return article;
+}
+
+
+function eventSchema(item) {
+  const title = schemaText(item.data.title, 120);
+  const date = strictEventDate(item.data.date);
+
+  if (!title || !date) {
+    return null;
+  }
+
+  const time = strictSchemaTime(item.data.time);
+  const event = addSharedSchemaFields({
+    "@type": "Event",
+    name: title,
+    startDate: time ? `${date}T${time}` : date
+  }, item);
+
+  const details = schemaText(item.data.details);
+  const location = schemaText(item.data.location, 200);
+
+  if (details) {
+    event.description = details;
+  }
+
+  if (location) {
+    event.location = {
+      "@type": "Place",
+      name: location
+    };
+  }
+
+  return event;
+}
+
+
+function serviceSchema(item) {
+  const days = {
+    sunday: "https://schema.org/Sunday",
+    monday: "https://schema.org/Monday",
+    tuesday: "https://schema.org/Tuesday",
+    wednesday: "https://schema.org/Wednesday",
+    thursday: "https://schema.org/Thursday",
+    friday: "https://schema.org/Friday",
+    saturday: "https://schema.org/Saturday"
+  };
+
+  const title = schemaText(item.data.title, 120);
+  const day = days[schemaText(item.data.day, 20).toLowerCase()] || "";
+  const time = strictSchemaTime(item.data.time);
+
+  if (!title || !day || !time) {
+    return null;
+  }
+
+  const event = addSharedSchemaFields({
+    "@type": "Event",
+    name: title,
+    eventSchedule: {
+      "@type": "Schedule",
+      repeatFrequency: "P1W",
+      byDay: day,
+      startTime: time
+    }
+  }, item);
+
+  const details = schemaText(item.data.details);
+  const location = schemaText(item.data.location, 200);
+
+  if (details) {
+    event.description = details;
+  }
+
+  if (location) {
+    event.location = {
+      "@type": "Place",
+      name: location
+    };
+  }
+
+  return event;
+}
+
+
+function ministrySchema(item) {
+  const name = schemaText(item.data.name, 120);
+
+  if (!name) {
+    return null;
+  }
+
+  const organization = addSharedSchemaFields({
+    "@type": "Organization",
+    name
+  }, item);
+  const details = schemaText(item.data.details);
+
+  if (details) {
+    organization.description = details;
+  }
+
+  return organization;
+}
+
+
+function sermonSchema(item) {
+  const title = schemaText(item.data.title, 120);
+  const details = schemaText(item.data.details);
+
+  if (!title) {
+    return null;
+  }
+
+  const videoUrl = getSafeMediaUrl(item.data.videoUrl);
+  const embedUrl = getYouTubeEmbedUrl(videoUrl);
+  const directVideo = isDirectVideoUrl(videoUrl);
+  const hasVideo = Boolean(embedUrl || directVideo);
+  const node = addSharedSchemaFields({
+    "@type": hasVideo ? "VideoObject" : "CreativeWork",
+    name: title
+  }, item);
+  const speaker = schemaText(item.data.speaker, 120);
+  const sermonDate = strictIsoDate(item.data.date);
+
+  if (details) {
+    node.description = details;
+  }
+
+  if (speaker) {
+    node.creator = {
+      "@type": "Person",
+      name: speaker
+    };
+  }
+
+  if (sermonDate) {
+    node.dateCreated = sermonDate;
+
+    if (hasVideo) {
+      node.uploadDate = sermonDate;
+    }
+  }
+
+  if (hasVideo) {
+    if (embedUrl) {
+      node.embedUrl = embedUrl;
+    } else {
+      node.contentUrl = videoUrl;
+    }
+
+    if (typeof node.image === "string") {
+      node.thumbnailUrl = node.image;
+    }
+  }
+
+  return node;
+}
+
+
+function renderDynamicContentSchema() {
+  const builders = {
+    announcements: announcementSchema,
+    events: eventSchema,
+    services: serviceSchema,
+    ministries: ministrySchema,
+    sermons: sermonSchema
+  };
+  const builder = builders[collectionName];
+  let schemaElement = document.getElementById("dynamicContentSchema");
+
+  if (!builder) {
+    schemaElement?.remove();
+    return;
+  }
+
+  if (!schemaElement) {
+    schemaElement = document.createElement("script");
+    schemaElement.id = "dynamicContentSchema";
+    schemaElement.type = "application/ld+json";
+    document.head.appendChild(schemaElement);
+  }
+
+  const nodes = currentItems
+    .map(builder)
+    .filter(Boolean);
+
+  schemaElement.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: nodes.map(function (node, index) {
+      return {
+        "@type": "ListItem",
+        position: index + 1,
+        item: node
+      };
+    })
+  });
+}
+
+
 function openEditor(item = null) {
   if (!currentStaff || !editor || !editorForm) {
     return;
@@ -324,8 +819,9 @@ function enableStaffEditing(user, profile) {
     getInitials(displayName);
 
   if (profile.role === "pastor") {
-    accountsButton.hidden = false;
-    subscribeToAccounts();
+    mountAccountManager();
+  } else {
+    unmountAccountManager();
   }
 
   renderItems();
@@ -333,6 +829,8 @@ function enableStaffEditing(user, profile) {
 
 
 function disableStaffEditing() {
+  unmountAccountManager();
+
   currentUser = null;
   currentStaff = null;
 
@@ -344,8 +842,16 @@ function disableStaffEditing() {
     headingAddButton.hidden = true;
   }
 
-  if (accountsButton) {
-    accountsButton.hidden = true;
+  if (staffName) {
+    staffName.textContent = "Staff Member";
+  }
+
+  if (staffRole) {
+    staffRole.textContent = "Staff";
+  }
+
+  if (staffInitials) {
+    staffInitials.textContent = "SM";
   }
 
   closeEditor();
@@ -412,18 +918,24 @@ function getYouTubeEmbedUrl(value) {
       new URL(safeUrl);
 
     let videoId = "";
+    const hostname = parsed.hostname
+      .toLowerCase()
+      .replace(/\.$/, "");
 
     if (
-      parsed.hostname === "youtu.be" ||
-      parsed.hostname === "www.youtu.be"
+      hostname === "youtu.be" ||
+      hostname === "www.youtu.be"
     ) {
       videoId =
         parsed.pathname
           .split("/")
           .filter(Boolean)[0] || "";
-    } else if (
-      parsed.hostname.includes("youtube.com")
-    ) {
+    } else if ([
+      "youtube.com",
+      "www.youtube.com",
+      "m.youtube.com",
+      "music.youtube.com"
+    ].includes(hostname)) {
       if (
         parsed.pathname === "/watch"
       ) {
@@ -736,13 +1248,15 @@ function renderItems() {
     return;
   }
 
+  renderDynamicContentSchema();
   contentGrid.replaceChildren();
 
   if (currentItems.length === 0) {
     const empty = createTextElement(
       "div",
       "empty-state",
-      `No ${collectionName} have been published yet.`
+      CONTENT_STATES[collectionName]?.empty ||
+        "No church information has been posted yet."
     );
 
     contentGrid.appendChild(empty);
@@ -783,9 +1297,16 @@ function subscribeToContent() {
     },
     function (error) {
       console.error(error);
-
-      contentGrid.innerHTML =
-        '<div class="empty-state">Church information could not be loaded.</div>';
+      currentItems = [];
+      renderDynamicContentSchema();
+      contentGrid.replaceChildren(
+        createTextElement(
+          "div",
+          "empty-state",
+          CONTENT_STATES[collectionName]?.error ||
+            "Church information could not be loaded right now. Please try again later."
+        )
+      );
     }
   );
 }
@@ -933,54 +1454,150 @@ if (signOutButton) {
 
 
 function openAccountsModal() {
-  if (!accountsModal) {
+  if (
+    !accountsModal ||
+    !accountsModal.hidden ||
+    !hasVerifiedPastorSession()
+  ) {
     return;
   }
 
+  accountsReturnFocus = document.activeElement;
+  accountsPreviousBodyOverflow = document.body.style.overflow;
   accountsModal.hidden = false;
+  accountsButton?.setAttribute("aria-expanded", "true");
   document.body.style.overflow = "hidden";
-}
 
+  const firstField =
+    accountForm?.querySelector("input, button");
 
-function closeAccountsModal() {
-  if (!accountsModal) {
-    return;
-  }
-
-  accountsModal.hidden = true;
-  document.body.style.overflow = "";
-  hideStatus(accountStatus);
-}
-
-
-if (accountsButton) {
-  accountsButton.addEventListener("click", openAccountsModal);
-}
-
-
-if (accountsClose) {
-  accountsClose.addEventListener("click", closeAccountsModal);
-}
-
-
-if (accountsModal) {
-  accountsModal.addEventListener("click", function (event) {
-    if (event.target === accountsModal) {
-      closeAccountsModal();
-    }
+  window.requestAnimationFrame(function () {
+    (firstField || accountsClose)?.focus();
   });
 }
 
 
-document.addEventListener("keydown", function (event) {
+function closeAccountsModal({
+  restoreFocus = true
+} = {}) {
+  if (!accountsModal) {
+    return;
+  }
+
+  const wasOpen = !accountsModal.hidden;
+
+  accountsModal.hidden = true;
+  accountsButton?.setAttribute("aria-expanded", "false");
+
+  if (wasOpen) {
+    document.body.style.overflow =
+      accountsPreviousBodyOverflow ?? "";
+  }
+
+  accountsPreviousBodyOverflow = null;
+  hideStatus(accountStatus);
+
+  if (
+    restoreFocus &&
+    accountsReturnFocus instanceof HTMLElement &&
+    accountsReturnFocus.isConnected
+  ) {
+    accountsReturnFocus.focus();
+  }
+
+  accountsReturnFocus = null;
+}
+
+
+function accountFocusableElements() {
+  if (!accountsModal || accountsModal.hidden) {
+    return [];
+  }
+
+  return [...accountsModal.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )].filter(function (element) {
+    return !element.hidden && element.getClientRects().length > 0;
+  });
+}
+
+
+function handleAccountsKeydown(event) {
+  if (!accountsModal || accountsModal.hidden) {
+    return;
+  }
+
   if (event.key === "Escape") {
+    event.preventDefault();
+    closeAccountsModal();
+    return;
+  }
+
+  if (event.key !== "Tab") {
+    return;
+  }
+
+  const focusable = accountFocusableElements();
+
+  if (focusable.length === 0) {
+    event.preventDefault();
+    accountsClose?.focus();
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const focusIsInside = focusable.includes(
+    document.activeElement
+  );
+
+  if (!focusIsInside) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  } else if (
+    event.shiftKey &&
+    document.activeElement === first
+  ) {
+    event.preventDefault();
+    last.focus();
+  } else if (
+    !event.shiftKey &&
+    document.activeElement === last
+  ) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+
+function handleAccountsBackdropClick(event) {
+  if (event.target === accountsModal) {
     closeAccountsModal();
   }
-});
+}
 
 
 function renderAccounts(snapshot) {
-  if (!accountList) {
+  if (
+    !accountList ||
+    !hasVerifiedPastorSession()
+  ) {
+    return;
+  }
+
+  const pastorSnapshot = currentUser
+    ? snapshot.docs.find(function (documentSnapshot) {
+        return documentSnapshot.id === currentUser.uid;
+      })
+    : null;
+  const pastorData = pastorSnapshot?.data();
+
+  if (
+    !pastorData ||
+    pastorData.active !== true ||
+    normalizeRole(pastorData.role) !== "pastor"
+  ) {
+    disableStaffEditing();
     return;
   }
 
@@ -1003,6 +1620,7 @@ function renderAccounts(snapshot) {
     });
 
   accountList.replaceChildren();
+  accountList.setAttribute("aria-busy", "false");
 
   if (accounts.length === 0) {
     accountList.appendChild(
@@ -1088,6 +1706,11 @@ function renderAccounts(snapshot) {
     resetButton.addEventListener(
       "click",
       async function () {
+        if (!hasVerifiedPastorSession()) {
+          showToast("Your pastor session has ended.", true);
+          return;
+        }
+
         const accountEmail =
           String(account.data.email || "")
             .trim()
@@ -1177,6 +1800,11 @@ function renderAccounts(snapshot) {
     toggle.addEventListener(
       "click",
       async function () {
+        if (!hasVerifiedPastorSession()) {
+          showToast("Your pastor session has ended.", true);
+          return;
+        }
+
         const nextActive =
           account.data.active !== true;
 
@@ -1241,6 +1869,13 @@ function renderAccounts(snapshot) {
 
 
 function subscribeToAccounts() {
+  if (
+    !accountList ||
+    !hasVerifiedPastorSession()
+  ) {
+    return;
+  }
+
   if (accountUnsubscribe) {
     accountUnsubscribe();
   }
@@ -1251,170 +1886,496 @@ function subscribeToAccounts() {
     function (error) {
       console.error(error);
 
+      if (
+        error.code === "permission-denied" ||
+        error.code === "firestore/permission-denied"
+      ) {
+        disableStaffEditing();
+        return;
+      }
+
       if (accountList) {
-        accountList.innerHTML =
-          '<div class="staff-inline-empty">Accounts could not be loaded.</div>';
+        accountList.setAttribute("aria-busy", "false");
+        accountList.replaceChildren(
+          createTextElement(
+            "div",
+            "staff-inline-empty",
+            "Accounts could not be loaded."
+          )
+        );
       }
     }
   );
 }
 
 
-if (accountForm) {
-  accountForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
+function secureRandomIndex(length) {
+  if (
+    !Number.isInteger(length) ||
+    length < 1 ||
+    length > 256 ||
+    !window.crypto?.getRandomValues
+  ) {
+    throw new Error("Secure random values are unavailable.");
+  }
 
-    if (currentStaff?.role !== "pastor") {
-      showStatus(
-        accountStatus,
-        "Only the pastor can create ministry accounts.",
-        true
+  const maximum = 256 - (256 % length);
+  const value = new Uint8Array(1);
+
+  do {
+    window.crypto.getRandomValues(value);
+  } while (value[0] >= maximum);
+
+  return value[0] % length;
+}
+
+
+function secureRandomCharacter(characters) {
+  return characters[secureRandomIndex(characters.length)];
+}
+
+
+function createBootstrapPassword() {
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const numbers = "23456789";
+  const symbols = "!@#$%*-_";
+  const all = lower + upper + numbers + symbols;
+  const characters = [
+    secureRandomCharacter(lower),
+    secureRandomCharacter(upper),
+    secureRandomCharacter(numbers),
+    secureRandomCharacter(symbols)
+  ];
+
+  while (characters.length < 32) {
+    characters.push(
+      secureRandomCharacter(all)
+    );
+  }
+
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapIndex = secureRandomIndex(index + 1);
+
+    [characters[index], characters[swapIndex]] =
+      [characters[swapIndex], characters[index]];
+  }
+
+  const password = characters.join("");
+
+  if (!isStrongTemporaryPassword(password)) {
+    throw new Error("The bootstrap password did not meet policy.");
+  }
+
+  return password;
+}
+
+
+async function handleAccountFormSubmit(event) {
+  event.preventDefault();
+
+  const formAtStart = event.currentTarget;
+  const statusAtStart = accountStatus;
+
+  if (
+    !hasVerifiedPastorSession()
+  ) {
+    showStatus(
+      statusAtStart,
+      "Only the pastor can create ministry accounts.",
+      true
+    );
+
+    return;
+  }
+
+  const nameInput = formAtStart.elements.name;
+  const emailInput = formAtStart.elements.email;
+  const name = String(nameInput?.value || "").trim();
+  const email = String(emailInput?.value || "")
+    .trim()
+    .toLowerCase();
+
+  if (!name || name.length > 100) {
+    showStatus(
+      statusAtStart,
+      "Enter the ministry member's name using 100 characters or fewer.",
+      true
+    );
+    nameInput?.focus();
+    return;
+  }
+
+  if (
+    !email ||
+    email.length > 254 ||
+    !emailInput?.checkValidity()
+  ) {
+    showStatus(
+      statusAtStart,
+      "Enter a valid email address.",
+      true
+    );
+    emailInput?.focus();
+    return;
+  }
+
+  const submitButton =
+    formAtStart.querySelector('[type="submit"]');
+  const pastorUid = currentUser.uid;
+  let secondaryApp = null;
+  let secondaryAuth = null;
+  let createdUser = null;
+  let staffRecordCreated = false;
+  let invitationSent = false;
+  let cleanupFailed = false;
+  let password = "";
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Creating Account...";
+  hideStatus(statusAtStart);
+
+  try {
+    password = createBootstrapPassword();
+    secondaryApp = initializeApp(
+      firebaseConfig,
+      `ministry-account-${Date.now()}-${secureRandomIndex(256)}`
+    );
+    secondaryAuth = getAuth(secondaryApp);
+
+    const credential =
+      await createUserWithEmailAndPassword(
+        secondaryAuth,
+        email,
+        password
       );
 
-      return;
-    }
+    password = "";
+    createdUser = credential.user;
 
-    const name = document
-      .getElementById("staffInlineAccountName")
-      .value
-      .trim();
+    await setDoc(
+      doc(db, "staff", createdUser.uid),
+      {
+        name,
+        email,
+        role: "ministry",
+        active: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdBy: pastorUid,
+        updatedBy: pastorUid
+      }
+    );
 
-    const email = document
-      .getElementById("staffInlineAccountEmail")
-      .value
-      .trim()
-      .toLowerCase();
-
-    const password = document
-      .getElementById("staffInlineAccountPassword")
-      .value;
-
-    if (!isStrongTemporaryPassword(password)) {
-      showStatus(
-        accountStatus,
-        "Use at least 12 characters with an uppercase letter, a lowercase letter, and a number.",
-        true
-      );
-
-      return;
-    }
-
-    const submitButton =
-      accountForm.querySelector('[type="submit"]');
-
-    let secondaryApp = null;
-    let createdUser = null;
-
-    submitButton.disabled = true;
-    submitButton.textContent = "Creating Account...";
-    hideStatus(accountStatus);
+    staffRecordCreated = true;
 
     try {
-      secondaryApp = initializeApp(
-        firebaseConfig,
-        `ministry-account-${Date.now()}`
+      await sendPasswordResetEmail(
+        secondaryAuth,
+        email
       );
-
-      const secondaryAuth =
-        getAuth(secondaryApp);
-
-      const credential =
-        await createUserWithEmailAndPassword(
-          secondaryAuth,
-          email,
-          password
-        );
-
-      createdUser = credential.user;
-
-      await setDoc(
-        doc(db, "staff", createdUser.uid),
-        {
-          name,
-          email,
-          role: "ministry",
-          active: true,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          createdBy: currentUser.uid,
-          updatedBy: currentUser.uid
-        }
+      invitationSent = true;
+    } catch (invitationError) {
+      console.error(
+        "Ministry password setup email failed.",
+        invitationError
       );
-
-      await signOut(secondaryAuth);
-
-      accountForm.reset();
-
-      showStatus(
-        accountStatus,
-        "Ministry account created successfully."
-      );
-
-      showToast("Ministry account created.");
-    } catch (error) {
-      console.error(error);
-
-      if (createdUser) {
-        try {
-          await deleteUser(createdUser);
-        } catch (cleanupError) {
-          console.error(cleanupError);
-        }
-      }
-
-      let message =
-        "The ministry account could not be created.";
-
-      if (error.code === "auth/email-already-in-use") {
-        message =
-          "An account already exists with that email address.";
-      } else if (error.code === "auth/weak-password") {
-        message =
-          "Use at least 12 characters with an uppercase letter, a lowercase letter, and a number.";
-      } else if (error.code === "auth/invalid-email") {
-        message =
-          "Enter a valid email address.";
-      } else if (
-        error.code === "permission-denied" ||
-        error.code === "firestore/permission-denied"
-      ) {
-        message =
-          "The ministry account could not be created. Please review staff access and try again.";
-      } else if (
-        error.code === "auth/operation-not-allowed"
-      ) {
-        message =
-          "Account creation is currently unavailable. Please contact the site administrator.";
-      } else if (
-        error.code === "auth/network-request-failed"
-      ) {
-        message =
-          "The account service could not be reached. Check your connection and try again.";
-      }
-
-      showStatus(
-        accountStatus,
-        message,
-        true
-      );
-
-      showToast(
-        message,
-        true
-      );
-    } finally {
-      if (secondaryApp) {
-        try {
-          await deleteApp(secondaryApp);
-        } catch (error) {
-          console.error(error);
-        }
-      }
-
-      submitButton.disabled = false;
-      submitButton.textContent = "Create Account";
     }
-  });
+
+    formAtStart.reset();
+
+    if (invitationSent) {
+      showStatus(
+        statusAtStart,
+        "Ministry account created. A password setup email was sent to the member."
+      );
+      showToast("Ministry account created and setup email sent.");
+    } else {
+      const warning =
+        "Ministry account created, but the password setup email could not be sent. Use Send Password Reset beside the account to try again.";
+
+      showStatus(statusAtStart, warning, true);
+      showToast(warning, true);
+    }
+  } catch (error) {
+    password = "";
+    console.error(error);
+
+    if (createdUser && !staffRecordCreated) {
+      try {
+        await deleteUser(createdUser);
+      } catch (cleanupError) {
+        cleanupFailed = true;
+        console.error(
+          "Incomplete ministry Auth user cleanup failed.",
+          cleanupError
+        );
+      }
+    }
+
+    let message =
+      "The ministry account could not be created.";
+
+    if (error.code === "auth/email-already-in-use") {
+      message =
+        "An account already exists with that email address.";
+    } else if (error.code === "auth/weak-password") {
+      message =
+        "The secure setup password did not meet the Firebase password policy. Review the Firebase password policy and try again.";
+    } else if (error.code === "auth/invalid-email") {
+      message =
+        "Enter a valid email address.";
+    } else if (
+      error.code === "permission-denied" ||
+      error.code === "firestore/permission-denied"
+    ) {
+      message =
+        "The ministry account could not be created. Please review staff access and try again.";
+    } else if (
+      error.code === "auth/operation-not-allowed"
+    ) {
+      message =
+        "Account creation is currently unavailable. Please contact the site administrator.";
+    } else if (
+      error.code === "auth/network-request-failed"
+    ) {
+      message =
+        "The account service could not be reached. Check your connection and try again.";
+    }
+
+    if (cleanupFailed) {
+      message +=
+        " An incomplete Firebase Authentication account may remain and should be removed before retrying.";
+    }
+
+    showStatus(statusAtStart, message, true);
+    showToast(message, true);
+  } finally {
+    password = "";
+
+    if (secondaryAuth?.currentUser) {
+      try {
+        await signOut(secondaryAuth);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    if (secondaryApp) {
+      try {
+        await deleteApp(secondaryApp);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    if (submitButton.isConnected) {
+      submitButton.disabled = false;
+      submitButton.textContent =
+        "Create Account & Send Setup Email";
+    }
+  }
+}
+
+
+function handleAccountsCloseClick() {
+  closeAccountsModal();
+}
+
+
+function mountAccountManager() {
+  if (
+    accountsModal ||
+    accountsButton ||
+    !hasVerifiedPastorSession() ||
+    !signOutButton?.parentElement
+  ) {
+    return;
+  }
+
+  accountsButton = document.createElement("button");
+  accountsButton.className = "staff-inline-accounts-button";
+  accountsButton.id = "staffInlineAccountsButton";
+  accountsButton.type = "button";
+  accountsButton.textContent = "Ministry Accounts";
+  accountsButton.setAttribute("aria-haspopup", "dialog");
+  accountsButton.setAttribute(
+    "aria-controls",
+    "staffInlineAccountsModal"
+  );
+  accountsButton.setAttribute("aria-expanded", "false");
+  signOutButton.parentElement.insertBefore(
+    accountsButton,
+    signOutButton
+  );
+
+  accountsModal = document.createElement("div");
+  accountsModal.className = "staff-inline-modal-backdrop";
+  accountsModal.id = "staffInlineAccountsModal";
+  accountsModal.hidden = true;
+  accountsModal.innerHTML = `
+    <div
+      class="staff-inline-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="staffInlineAccountsTitle"
+      aria-describedby="staffInlineAccountsDescription"
+    >
+      <div class="staff-inline-modal-heading">
+        <div>
+          <span>Pastor Only</span>
+          <h2 id="staffInlineAccountsTitle">Ministry Accounts</h2>
+          <p id="staffInlineAccountsDescription">
+            Create ministry accounts or remove and restore website access.
+          </p>
+        </div>
+
+        <button
+          class="staff-inline-close"
+          id="staffInlineAccountsClose"
+          type="button"
+          aria-label="Close ministry accounts"
+        >×</button>
+      </div>
+
+      <div class="staff-inline-account-layout">
+        <form id="staffInlineAccountForm">
+          <h3>Create Ministry Account</h3>
+          <p class="staff-password-help">
+            A secure bootstrap password is generated privately and is never shown or stored by this website. Firebase emails the member a password setup link.
+          </p>
+
+          <label for="staffInlineAccountName">Full name</label>
+          <input
+            id="staffInlineAccountName"
+            name="name"
+            type="text"
+            maxlength="100"
+            autocomplete="name"
+            placeholder="Ministry member's name"
+            required
+          >
+
+          <label for="staffInlineAccountEmail">Email</label>
+          <input
+            id="staffInlineAccountEmail"
+            name="email"
+            type="email"
+            maxlength="254"
+            autocomplete="email"
+            placeholder="member@email.com"
+            required
+          >
+
+          <button class="button button-primary" type="submit">
+            Create Account &amp; Send Setup Email
+          </button>
+
+          <div
+            class="staff-inline-status"
+            id="staffInlineAccountStatus"
+            role="status"
+            aria-live="polite"
+          ></div>
+        </form>
+
+        <div>
+          <h3>Current Ministry Accounts</h3>
+          <div
+            class="staff-inline-account-list"
+            id="staffInlineAccountList"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div class="staff-inline-empty">Loading accounts...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(accountsModal);
+
+  accountsClose = accountsModal.querySelector(
+    "#staffInlineAccountsClose"
+  );
+  accountForm = accountsModal.querySelector(
+    "#staffInlineAccountForm"
+  );
+  accountStatus = accountsModal.querySelector(
+    "#staffInlineAccountStatus"
+  );
+  accountList = accountsModal.querySelector(
+    "#staffInlineAccountList"
+  );
+
+  accountsButton.addEventListener(
+    "click",
+    openAccountsModal
+  );
+  accountsClose.addEventListener(
+    "click",
+    handleAccountsCloseClick
+  );
+  accountsModal.addEventListener(
+    "click",
+    handleAccountsBackdropClick
+  );
+  accountForm.addEventListener(
+    "submit",
+    handleAccountFormSubmit
+  );
+  document.addEventListener(
+    "keydown",
+    handleAccountsKeydown
+  );
+
+  subscribeToAccounts();
+}
+
+
+function unmountAccountManager() {
+  if (accountUnsubscribe) {
+    accountUnsubscribe();
+    accountUnsubscribe = null;
+  }
+
+  closeAccountsModal({ restoreFocus: false });
+  document.removeEventListener(
+    "keydown",
+    handleAccountsKeydown
+  );
+
+  accountsButton?.removeEventListener(
+    "click",
+    openAccountsModal
+  );
+  accountsClose?.removeEventListener(
+    "click",
+    handleAccountsCloseClick
+  );
+  accountsModal?.removeEventListener(
+    "click",
+    handleAccountsBackdropClick
+  );
+  accountForm?.removeEventListener(
+    "submit",
+    handleAccountFormSubmit
+  );
+
+  accountForm?.reset();
+  accountList?.replaceChildren();
+  hideStatus(accountStatus);
+  accountsModal?.remove();
+  accountsButton?.remove();
+
+  accountsButton = null;
+  accountsModal = null;
+  accountsClose = null;
+  accountForm = null;
+  accountStatus = null;
+  accountList = null;
+  accountsReturnFocus = null;
+  accountsPreviousBodyOverflow = null;
 }
 
 
@@ -1431,7 +2392,10 @@ onAuthStateChanged(auth, async function (user) {
     const profile =
       await loadStaffProfile(user);
 
-    if (!profile) {
+    if (
+      !profile ||
+      auth.currentUser?.uid !== user.uid
+    ) {
       disableStaffEditing();
       return;
     }

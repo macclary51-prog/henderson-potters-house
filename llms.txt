@@ -1,0 +1,26 @@
+# The Henderson Potter's House
+
+The Henderson Potter's House is a Christian church serving Henderson, Nevada, with public information about worship, fellowship, prayer, sermons, ministries, events, and church updates.
+
+Pastor: Pastor William Rice
+Address: 746 S Boulder Hwy, Henderson, NV 89015
+Phone: (702) 600-7632
+Preferred website: https://www.hendersonpotterhouse.com/
+
+## Main public pages
+
+- Home: https://www.hendersonpotterhouse.com/
+- Announcements: https://www.hendersonpotterhouse.com/announcements.html
+- Events: https://www.hendersonpotterhouse.com/events.html
+- Services: https://www.hendersonpotterhouse.com/services.html
+- Ministries: https://www.hendersonpotterhouse.com/ministries.html
+- Sermons: https://www.hendersonpotterhouse.com/sermons.html
+- Giving: https://www.hendersonpotterhouse.com/giving.html
+- Connect: https://www.hendersonpotterhouse.com/connect.html
+- Prayer: https://www.hendersonpotterhouse.com/prayer.html
+- Contact: https://www.hendersonpotterhouse.com/contact.html
+- Privacy: https://www.hendersonpotterhouse.com/privacy.html
+
+## Notes
+
+Public church content may be updated by authorized church staff through Firebase-backed editing tools. Staff login, staff dashboard, account-management interfaces, and private prayer-request records are not public church content and should not be indexed or summarized as public information.

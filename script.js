@@ -9,7 +9,7 @@ const navWrap =
 
 
 /* =========================================================
-   ENSURE ALL WEBSITE LINKS EXIST
+   ENHANCE THE COMPLETE RAW HTML NAVIGATION
    ========================================================= */
 
 function findStaffLink() {
@@ -23,130 +23,9 @@ function findStaffLink() {
 }
 
 
-function insertNavigationLink({
-  href,
-  label,
-  beforeSelectors = []
-}) {
-  if (!navLinks) {
-    return null;
-  }
-
-  let link =
-    navLinks.querySelector(
-      `a[href="${href}"]`
-    );
-
-  if (link) {
-    return link;
-  }
-
-  link =
-    document.createElement("a");
-
-  link.href =
-    href;
-
-  link.textContent =
-    label;
-
-  let beforeElement = null;
-
-  for (const selector of beforeSelectors) {
-    beforeElement =
-      navLinks.querySelector(selector);
-
-    if (beforeElement) {
-      break;
-    }
-  }
-
-  navLinks.insertBefore(
-    link,
-    beforeElement || null
-  );
-
-  return link;
-}
-
-
-function removeContactNavigationLinks() {
-  if (!navLinks) {
-    return;
-  }
-
-  navLinks
-    .querySelectorAll(
-      'a[href="contact.html"], a[href="./contact.html"], a[href$="/contact.html"]'
-    )
-    .forEach(function (link) {
-      link.remove();
-    });
-}
-
-
 function ensureAllNavigationLinks() {
   if (!navLinks) {
     return;
-  }
-
-  /*
-    Connect already contains the church location, phone, and social links.
-    Remove the separate Contact link from every page before building the menu.
-  */
-  removeContactNavigationLinks();
-
-  insertNavigationLink({
-    href: "services.html",
-    label: "Services",
-    beforeSelectors: [
-      'a[href="ministries.html"]',
-      'a[href="sermons.html"]'
-    ]
-  });
-
-  insertNavigationLink({
-    href: "giving.html",
-    label: "Giving",
-    beforeSelectors: [
-      'a[href="connect.html"]',
-      'a[href="prayer.html"]'
-    ]
-  });
-
-  insertNavigationLink({
-    href: "connect.html",
-    label: "Connect",
-    beforeSelectors: [
-      'a[href="prayer.html"]'
-    ]
-  });
-
-  let staffLink =
-    findStaffLink();
-
-  if (!staffLink) {
-    staffLink =
-      document.createElement("a");
-
-    staffLink.href =
-      "staff-login.html";
-
-    staffLink.textContent =
-      "Staff";
-
-    staffLink.className =
-      "staff-link";
-
-    staffLink.dataset.staffNavigation =
-      "true";
-
-    navLinks.appendChild(
-      staffLink
-    );
-  } else {
-    staffLink.dataset.staffNavigation =
-      "true";
   }
 
   const currentFile =
@@ -157,11 +36,24 @@ function ensureAllNavigationLinks() {
   navLinks
     .querySelectorAll("a")
     .forEach(function (link) {
+      const isCurrent =
+        link.getAttribute("href") === currentFile;
+
       link.classList.toggle(
         "active",
-        link.getAttribute("href") ===
-          currentFile
+        isCurrent
       );
+
+      if (isCurrent) {
+        link.setAttribute(
+          "aria-current",
+          "page"
+        );
+      } else {
+        link.removeAttribute(
+          "aria-current"
+        );
+      }
     });
 }
 
@@ -241,6 +133,8 @@ function syncStaffShortcut() {
    ========================================================= */
 
 let menuOverlay = null;
+let menuPreviouslyFocused = null;
+let menuInertElements = [];
 
 
 function addOverlayStyles() {
@@ -393,7 +287,7 @@ function addOverlayStyles() {
     .full-website-menu-grid a:focus,
     .full-website-menu-grid a.active {
       color: #ffffff !important;
-      background: linear-gradient(135deg, #e03a2f, #f26a32) !important;
+      background: linear-gradient(135deg, #4169e1, #27408b) !important;
       border-color: transparent !important;
     }
 
@@ -581,6 +475,11 @@ function createMenuOverlay() {
     menuOverlay
   );
 
+  menuButton?.setAttribute(
+    "aria-controls",
+    "fullWebsiteMenuOverlay"
+  );
+
   closeButton.addEventListener(
     "click",
     closeFullMenu
@@ -667,6 +566,9 @@ function openFullMenu() {
   const overlay =
     createMenuOverlay();
 
+  menuPreviouslyFocused =
+    document.activeElement;
+
   /*
     Remove the old dropdown state in case previous CSS is still cached.
   */
@@ -677,6 +579,18 @@ function openFullMenu() {
   overlay.hidden =
     false;
 
+  menuInertElements =
+    Array.from(
+      document.body.children
+    ).filter(function (element) {
+      return element !== overlay &&
+        element.tagName !== "SCRIPT";
+    });
+
+  menuInertElements.forEach(function (element) {
+    element.inert = true;
+  });
+
   document.body.classList.add(
     "full-website-menu-open"
   );
@@ -684,6 +598,11 @@ function openFullMenu() {
   menuButton?.setAttribute(
     "aria-expanded",
     "true"
+  );
+
+  menuButton?.setAttribute(
+    "aria-label",
+    "Close menu"
   );
 
   const closeButton =
@@ -700,13 +619,22 @@ function openFullMenu() {
 }
 
 
-function closeFullMenu() {
+function closeFullMenu(restoreFocus = true) {
   if (!menuOverlay) {
     return;
   }
 
+  const wasOpen =
+    !menuOverlay.hidden;
+
   menuOverlay.hidden =
     true;
+
+  menuInertElements.forEach(function (element) {
+    element.inert = false;
+  });
+
+  menuInertElements = [];
 
   document.body.classList.remove(
     "full-website-menu-open"
@@ -717,7 +645,70 @@ function closeFullMenu() {
     "false"
   );
 
-  menuButton?.focus();
+  menuButton?.setAttribute(
+    "aria-label",
+    "Open menu"
+  );
+
+  if (
+    restoreFocus &&
+    wasOpen
+  ) {
+    const focusTarget =
+      menuPreviouslyFocused instanceof HTMLElement &&
+      menuPreviouslyFocused.isConnected
+        ? menuPreviouslyFocused
+        : menuButton;
+
+    focusTarget?.focus();
+  }
+
+  menuPreviouslyFocused = null;
+}
+
+
+function trapMenuFocus(event) {
+  if (
+    event.key !== "Tab" ||
+    !menuOverlay ||
+    menuOverlay.hidden
+  ) {
+    return;
+  }
+
+  const focusable =
+    Array.from(
+      menuOverlay.querySelectorAll(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(function (element) {
+      return !element.hidden;
+    });
+
+  if (focusable.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const first =
+    focusable[0];
+
+  const last =
+    focusable[focusable.length - 1];
+
+  if (
+    event.shiftKey &&
+    document.activeElement === first
+  ) {
+    event.preventDefault();
+    last.focus();
+  } else if (
+    !event.shiftKey &&
+    document.activeElement === last
+  ) {
+    event.preventDefault();
+    first.focus();
+  }
 }
 
 
@@ -766,7 +757,10 @@ document.addEventListener(
       !menuOverlay.hidden
     ) {
       closeFullMenu();
+      return;
     }
+
+    trapMenuFocus(event);
   }
 );
 
@@ -775,7 +769,7 @@ window.addEventListener(
   "pageshow",
   function () {
     navLinks?.classList.remove("open");
-    closeFullMenu();
+    closeFullMenu(false);
   }
 );
 
@@ -788,7 +782,6 @@ if (navLinks) {
   const observer =
     new MutationObserver(
       function () {
-        removeContactNavigationLinks();
         syncStaffShortcut();
 
         if (
@@ -841,15 +834,6 @@ document
   });
 
 
-const year =
-  document.getElementById("year");
-
-if (year) {
-  year.textContent =
-    new Date().getFullYear();
-}
-
-
 /* Universal staff mode */
 const staffSiteModule =
   document.createElement("script");
@@ -858,7 +842,7 @@ staffSiteModule.type =
   "module";
 
 staffSiteModule.src =
-  "staff-site.js?v=9";
+  "staff-site.js?v=10";
 
 document.body.appendChild(
   staffSiteModule
@@ -873,7 +857,7 @@ publicLinksModule.type =
   "module";
 
 publicLinksModule.src =
-  "site-links.js?v=4";
+  "site-links.js?v=5";
 
 document.body.appendChild(
   publicLinksModule

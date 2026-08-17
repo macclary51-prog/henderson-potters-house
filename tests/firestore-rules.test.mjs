@@ -384,6 +384,26 @@ expectStatus(
 );
 
 expectStatus(
+  await getDocument(
+    `staff/${pastor.uid}`,
+    ministry.token
+  ),
+  403,
+  "Ministry cannot read another staff profile"
+);
+
+expectStatus(
+  await requestJson(
+    `${firestoreBase}/documents/staff`,
+    {
+      token: ministry.token
+    }
+  ),
+  403,
+  "Ministry cannot list staff profiles"
+);
+
+expectStatus(
   await commitCreate(
     `staff/${authOnly.uid}`,
     {
@@ -509,6 +529,20 @@ expectStatus(
   ministryService,
   200,
   "Active Ministry service create"
+);
+
+expectStatus(
+  await commitCreate(
+    "services/public-forged",
+    {
+      ...serviceFields,
+      createdBy: stringValue("anonymous"),
+      updatedBy: stringValue("anonymous")
+    },
+    ["createdAt", "updatedAt"]
+  ),
+  403,
+  "Anonymous service create"
 );
 
 expectStatus(
@@ -660,6 +694,37 @@ expectStatus(
   ),
   403,
   "Inactive Ministry service update"
+);
+
+expectStatus(
+  await commitUpdate(
+    "services/ministry-valid",
+    {
+      title: stringValue("Anonymous Update"),
+      updatedBy: stringValue("anonymous")
+    },
+    ["title", "updatedBy"],
+    ["updatedAt"]
+  ),
+  403,
+  "Anonymous service update"
+);
+
+expectStatus(
+  await deleteDocument(
+    "services/ministry-valid"
+  ),
+  403,
+  "Anonymous service delete"
+);
+
+expectStatus(
+  await deleteDocument(
+    "services/ministry-valid",
+    inactive.token
+  ),
+  403,
+  "Inactive Ministry service delete"
 );
 
 
@@ -841,6 +906,21 @@ expectStatus(
   "Ministry self role escalation"
 );
 
+expectStatus(
+  await commitUpdate(
+    `staff/${ministry.uid}`,
+    {
+      role: stringValue("pastor"),
+      updatedBy: stringValue(pastor.uid)
+    },
+    ["role", "updatedBy"],
+    ["updatedAt"],
+    pastor.token
+  ),
+  403,
+  "Pastor cannot promote a ministry record to pastor"
+);
+
 
 expectStatus(
   await commitCreate(
@@ -871,6 +951,46 @@ expectStatus(
   ),
   403,
   "Public prayer delete"
+);
+
+expectStatus(
+  await commitUpdate(
+    "prayerRequests/public-valid",
+    {
+      status: stringValue("completed")
+    },
+    ["status"],
+    [],
+    ministry.token
+  ),
+  403,
+  "Prayer requests cannot be updated"
+);
+
+expectStatus(
+  await commitCreate(
+    "prayerRequests/ministry-delete",
+    {
+      name: stringValue("Anonymous"),
+      contact: stringValue(""),
+      prayerText: stringValue("Please pray for a private need."),
+      confidential: booleanValue(true),
+      status: stringValue("new"),
+      source: stringValue("website")
+    },
+    ["createdAt"]
+  ),
+  200,
+  "Second public prayer create"
+);
+
+expectStatus(
+  await deleteDocument(
+    "prayerRequests/ministry-delete",
+    ministry.token
+  ),
+  200,
+  "Active Ministry prayer delete"
 );
 
 expectStatus(

@@ -596,6 +596,26 @@ function disableStaffInbox() {
   currentRequests =
     [];
 
+  if (requestList) {
+    requestList.replaceChildren();
+
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "prayer-empty";
+
+    empty.textContent =
+      "Sign in with an approved staff account to view prayer requests.";
+
+    requestList.appendChild(empty);
+  }
+
+  if (countLabel) {
+    countLabel.textContent =
+      "0 requests";
+  }
+
   requestLimit = REQUEST_PAGE_SIZE;
   hasMoreRequests = false;
 

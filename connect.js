@@ -80,6 +80,23 @@ const TYPE_LABELS = {
   other: "Other"
 };
 
+const SUPPORTED_TYPES =
+  new Set(
+    Object.keys(TYPE_LABELS)
+  );
+
+
+function normalizeType(type) {
+  const normalized =
+    String(type || "")
+      .trim()
+      .toLowerCase();
+
+  return SUPPORTED_TYPES.has(normalized)
+    ? normalized
+    : "other";
+}
+
 function getTypeIcon(type) {
   const icons = {
     location: `
@@ -234,6 +251,9 @@ function hideStatus() {
 
 
 function normalizeLink(type, value) {
+  const normalizedType =
+    normalizeType(type);
+
   const text =
     String(value || "").trim();
 
@@ -241,18 +261,40 @@ function normalizeLink(type, value) {
     return "";
   }
 
-  if (type === "email") {
-    return text.startsWith("mailto:")
-      ? text
-      : `mailto:${text}`;
-  }
+  if (normalizedType === "email") {
+    const email =
+      text.replace(/^mailto:/i, "");
 
-  if (type === "phone") {
-    if (text.startsWith("tel:")) {
-      return text;
+    if (
+      !email ||
+      /[\r\n]/.test(email)
+    ) {
+      return "";
     }
 
-    return `tel:${text.replace(/[^\d+]/g, "")}`;
+    try {
+      const url =
+        new URL(`mailto:${email}`);
+
+      return url.protocol === "mailto:"
+        ? url.href
+        : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  if (normalizedType === "phone") {
+    const phone =
+      text
+        .replace(/^tel:/i, "")
+        .replace(/[^\d+]/g, "");
+
+    if (!/^\+?\d{3,}$/.test(phone)) {
+      return "";
+    }
+
+    return `tel:${phone}`;
   }
 
   try {
@@ -383,13 +425,20 @@ function createCard(item) {
     item.data;
 
   const type =
-    data.type || "other";
+    normalizeType(data.type);
 
   const safeUrl =
     normalizeLink(
       type,
       data.url
     );
+
+  const accessibleTitle =
+    String(
+      data.title ||
+      TYPE_LABELS[type] ||
+      "Church Link"
+    ).trim();
 
   const card =
     document.createElement("article");
@@ -406,6 +455,7 @@ function createCard(item) {
   icon.className =
     "connect-card-icon";
 
+  // getTypeIcon only returns markup from the fixed icon allowlist above.
   icon.innerHTML =
     getTypeIcon(type);
 
@@ -475,6 +525,11 @@ function createCard(item) {
             ? "Email Church →"
             : "Open Link →";
 
+    openLink.setAttribute(
+      "aria-label",
+      `${openLink.textContent.replace(" →", "")}: ${accessibleTitle}`
+    );
+
     card.appendChild(
       openLink
     );
@@ -499,6 +554,11 @@ function createCard(item) {
     edit.textContent =
       "✏ Edit";
 
+    edit.setAttribute(
+      "aria-label",
+      `Edit ${accessibleTitle}`
+    );
+
     edit.addEventListener(
       "click",
       function () {
@@ -517,6 +577,11 @@ function createCard(item) {
 
     remove.textContent =
       "🗑 Remove Link";
+
+    remove.setAttribute(
+      "aria-label",
+      `Remove ${accessibleTitle}`
+    );
 
     remove.addEventListener(
       "click",
@@ -689,9 +754,9 @@ editor.addEventListener(
       ).trim();
 
     const type =
-      String(
-        formData.get("type") || "other"
-      ).trim();
+      normalizeType(
+        formData.get("type")
+      );
 
     const title =
       String(
@@ -833,12 +898,12 @@ onAuthStateChanged(
     currentUser = null;
     pastorShell.hidden = true;
     headingAdd.hidden = true;
+    pastorName.textContent = "";
+    pageHint.textContent =
+      "Use the verified links below to find and follow the church.";
     closeEditor();
 
     if (!user) {
-      pageHint.textContent =
-        "Use the verified links below to find and follow the church.";
-
       renderLinks();
       return;
     }
@@ -846,6 +911,10 @@ onAuthStateChanged(
     try {
       const profile =
         await loadPastorProfile(user);
+
+      if (auth.currentUser?.uid !== user.uid) {
+        return;
+      }
 
       if (!profile) {
         renderLinks();

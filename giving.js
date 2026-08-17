@@ -77,6 +77,11 @@ let currentUser = null;
 let currentGiving = {};
 let toastTimer = null;
 
+methodGrid.setAttribute(
+  "aria-live",
+  "polite"
+);
+
 
 function normalizeRole(role) {
   return String(role || "")
@@ -134,10 +139,22 @@ function safeLink(value) {
       return url.href;
     }
   } catch (error) {
-    console.warn("Invalid giving link:", error);
+    return "";
   }
 
   return "";
+}
+
+
+function safePhoneLink(value) {
+  const phone =
+    safeText(value)
+      .replace(/^tel:/i, "")
+      .replace(/[^\d+]/g, "");
+
+  return /^\+?\d{3,}$/.test(phone)
+    ? `tel:${phone}`
+    : "";
 }
 
 
@@ -173,6 +190,11 @@ function createMethodCard({
 
   iconBox.className =
     "giving-method-icon";
+
+  iconBox.setAttribute(
+    "aria-hidden",
+    "true"
+  );
 
   iconBox.textContent =
     icon;
@@ -213,6 +235,11 @@ function createMethodCard({
   copyButton.textContent =
     "Copy";
 
+  copyButton.setAttribute(
+    "aria-label",
+    `Copy ${copyLabel || title}`
+  );
+
   copyButton.addEventListener(
     "click",
     function () {
@@ -234,11 +261,13 @@ function createMethodCard({
     actionLink.href =
       link;
 
-    actionLink.target =
-      "_blank";
+    if (/^https?:\/\//i.test(link)) {
+      actionLink.target =
+        "_blank";
 
-    actionLink.rel =
-      "noopener noreferrer";
+      actionLink.rel =
+        "noopener noreferrer";
+    }
 
     actionLink.className =
       "primary";
@@ -308,7 +337,7 @@ function renderGiving(data) {
           "Contact the church using this verified phone number for giving information.",
         value: phone,
         copyLabel: "Phone number",
-        link: `tel:${phone.replace(/[^\d+]/g, "")}`,
+        link: safePhoneLink(phone),
         linkLabel: "Call"
       })
     );
@@ -496,6 +525,23 @@ editorForm.addEventListener(
     const formData =
       new FormData(editorForm);
 
+    const cashAppLink =
+      safeText(
+        formData.get("cashAppLink")
+      );
+
+    if (
+      cashAppLink &&
+      !safeLink(cashAppLink)
+    ) {
+      showStatus(
+        "Enter a complete http:// or https:// link for Cash App.",
+        true
+      );
+
+      return;
+    }
+
     const data = {
       title:
         safeText(formData.get("title")) ||
@@ -514,7 +560,7 @@ editorForm.addEventListener(
         safeText(formData.get("cashApp")),
 
       cashAppLink:
-        safeText(formData.get("cashAppLink")),
+        cashAppLink,
 
       otherInstructions:
         safeText(
@@ -587,8 +633,16 @@ onSnapshot(
   function (error) {
     console.error(error);
 
-    methodGrid.innerHTML =
-      '<div class="giving-empty-state">Giving information could not be loaded.</div>';
+    const message =
+      document.createElement("div");
+
+    message.className =
+      "giving-empty-state";
+
+    message.textContent =
+      "Giving information could not be loaded. Please refresh and try again.";
+
+    methodGrid.replaceChildren(message);
   }
 );
 
@@ -598,6 +652,7 @@ onAuthStateChanged(
   async function (user) {
     currentUser = null;
     pastorShell.hidden = true;
+    pastorName.textContent = "";
     closeEditor();
 
     if (!user) {
@@ -607,6 +662,10 @@ onAuthStateChanged(
     try {
       const profile =
         await loadPastorProfile(user);
+
+      if (auth.currentUser?.uid !== user.uid) {
+        return;
+      }
 
       if (!profile) {
         return;
