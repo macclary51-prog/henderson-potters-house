@@ -68,6 +68,8 @@ let currentUser = null;
 let currentCards = [];
 let currentServices = [];
 let toastTimer = null;
+let cardsLoadFailed = false;
+let servicesLoadFailed = false;
 
 
 function normalizeRole(role) {
@@ -112,31 +114,61 @@ function safeLink(value) {
     return "";
   }
 
+  const hasExplicitScheme =
+    /^[a-z][a-z\d+.-]*:/i.test(text);
+
   /*
-    Allow normal local website pages such as services.html.
+    Reject protocol-relative and backslash variants before URL parsing.
+    Browsers can otherwise interpret these as cross-origin links.
   */
-  if (
-    !text.includes(":") &&
-    !text.startsWith("//")
-  ) {
-    return text;
+  if (/^[\\/]{2}/.test(text)) {
+    return "";
   }
 
   try {
     const url =
-      new URL(text);
+      new URL(
+        text,
+        window.location.href
+      );
 
     if (
-      url.protocol === "https:" ||
-      url.protocol === "http:"
+      url.protocol !== "https:" &&
+      url.protocol !== "http:"
     ) {
+      return "";
+    }
+
+    if (hasExplicitScheme) {
       return url.href;
     }
+
+    if (url.origin !== window.location.origin) {
+      return "";
+    }
+
+    return `${url.pathname}${url.search}${url.hash}`;
   } catch (error) {
     return "";
   }
+}
 
-  return "";
+
+function replaceWithMessage(
+  container,
+  className,
+  message
+) {
+  const state =
+    document.createElement("div");
+
+  state.className =
+    className;
+
+  state.textContent =
+    message;
+
+  container.replaceChildren(state);
 }
 
 
@@ -293,6 +325,16 @@ function renderServices() {
 
   servicesGrid.replaceChildren();
 
+  if (servicesLoadFailed) {
+    replaceWithMessage(
+      servicesGrid,
+      "home-services-empty",
+      "Service information could not be loaded. Visit the Services page or call (702) 600-7632 for the current schedule."
+    );
+
+    return;
+  }
+
   if (currentServices.length === 0) {
     const empty =
       document.createElement("div");
@@ -301,7 +343,7 @@ function renderServices() {
       "home-services-empty";
 
     empty.textContent =
-      "Service times will appear here soon.";
+      "No service times are currently listed. Visit the Services page or call (702) 600-7632 for the current schedule.";
 
     servicesGrid.appendChild(empty);
     return;
@@ -385,6 +427,12 @@ function createCard(item) {
   const data =
     item.data;
 
+  const accessibleTitle =
+    String(
+      data.title ||
+      "Homepage card"
+    ).trim();
+
   const card =
     document.createElement("article");
 
@@ -464,15 +512,22 @@ function createCard(item) {
     link.href =
       buttonUrl;
 
-    if (
-      buttonUrl.startsWith("http://") ||
-      buttonUrl.startsWith("https://")
-    ) {
-      link.target =
-        "_blank";
+    try {
+      const parsedUrl =
+        new URL(
+          buttonUrl,
+          window.location.href
+        );
 
-      link.rel =
-        "noopener noreferrer";
+      if (parsedUrl.origin !== window.location.origin) {
+        link.target =
+          "_blank";
+
+        link.rel =
+          "noopener noreferrer";
+      }
+    } catch (error) {
+      // safeLink already validated this value; leave it as same-page fallback.
     }
 
     link.textContent =
@@ -500,6 +555,11 @@ function createCard(item) {
     edit.textContent =
       "✏ Edit";
 
+    edit.setAttribute(
+      "aria-label",
+      `Edit ${accessibleTitle}`
+    );
+
     edit.addEventListener(
       "click",
       function () {
@@ -518,6 +578,11 @@ function createCard(item) {
 
     remove.textContent =
       "🗑 Remove From Homepage";
+
+    remove.setAttribute(
+      "aria-label",
+      `Remove ${accessibleTitle} from the homepage`
+    );
 
     remove.addEventListener(
       "click",
@@ -567,6 +632,16 @@ function createCard(item) {
 function renderCards() {
   cardsGrid.replaceChildren();
 
+  if (cardsLoadFailed) {
+    replaceWithMessage(
+      cardsGrid,
+      "home-empty-state",
+      "Homepage information could not be loaded. Please refresh and try again."
+    );
+
+    return;
+  }
+
   if (currentCards.length === 0) {
     const empty =
       document.createElement("div");
@@ -577,7 +652,7 @@ function renderCards() {
     empty.textContent =
       currentUser
         ? "No homepage cards are published. Select Add Homepage Card to create one."
-        : "Church updates will appear here soon.";
+        : "No homepage updates have been posted yet.";
 
     cardsGrid.appendChild(empty);
     return;
@@ -794,6 +869,8 @@ editor.addEventListener(
 onSnapshot(
   collection(db, "homeHighlights"),
   function (snapshot) {
+    cardsLoadFailed = false;
+
     currentCards =
       snapshot.docs
         .map(function (documentSnapshot) {
@@ -821,9 +898,9 @@ onSnapshot(
   },
   function (error) {
     console.error(error);
-
-    cardsGrid.innerHTML =
-      '<div class="home-empty-state">Homepage information could not be loaded.</div>';
+    cardsLoadFailed = true;
+    currentCards = [];
+    renderCards();
   }
 );
 
@@ -831,6 +908,8 @@ onSnapshot(
 onSnapshot(
   collection(db, "services"),
   function (snapshot) {
+    servicesLoadFailed = false;
+
     currentServices =
       snapshot.docs
         .map(function (documentSnapshot) {
@@ -866,11 +945,9 @@ onSnapshot(
   },
   function (error) {
     console.error(error);
-
-    if (servicesGrid) {
-      servicesGrid.innerHTML =
-        '<div class="home-services-empty">Service times could not be loaded. Select View All Services to see the full schedule.</div>';
-    }
+    servicesLoadFailed = true;
+    currentServices = [];
+    renderServices();
   }
 );
 
@@ -881,12 +958,12 @@ onAuthStateChanged(
     currentUser = null;
     pastorShell.hidden = true;
     headingAdd.hidden = true;
+    pastorName.textContent = "";
+    cardsHint.textContent =
+      "Current services, fellowship information, and church updates.";
     closeEditor();
 
     if (!user) {
-      cardsHint.textContent =
-        "Current services, fellowship information, and church updates.";
-
       renderCards();
       return;
     }
@@ -894,6 +971,10 @@ onAuthStateChanged(
     try {
       const profile =
         await loadPastorProfile(user);
+
+      if (auth.currentUser?.uid !== user.uid) {
+        return;
+      }
 
       if (!profile) {
         renderCards();

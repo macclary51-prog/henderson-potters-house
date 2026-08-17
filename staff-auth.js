@@ -187,6 +187,10 @@ if (resetButton) {
         return;
       }
 
+      resetButton.disabled = true;
+      resetButton.textContent =
+        "Sending...";
+
       try {
         await sendPasswordResetEmail(
           auth,
@@ -194,13 +198,23 @@ if (resetButton) {
         );
 
         showMessage(
-          "A password reset email has been sent."
+          "If an approved account uses that address, Firebase will send password-reset instructions."
         );
       } catch (error) {
-        showMessage(
-          friendlyError(error),
-          true
-        );
+        if (error.code === "auth/user-not-found") {
+          showMessage(
+            "If an approved account uses that address, Firebase will send password-reset instructions."
+          );
+        } else {
+          showMessage(
+            friendlyError(error),
+            true
+          );
+        }
+      } finally {
+        resetButton.disabled = false;
+        resetButton.textContent =
+          "Reset Password";
       }
     }
   );
@@ -215,7 +229,17 @@ onAuthStateChanged(
     }
 
     try {
-      await sendStaffToWebsite(user);
+      const approved =
+        await sendStaffToWebsite(user);
+
+      if (!approved) {
+        await signOut(auth);
+
+        showMessage(
+          "This account is not approved for church staff access.",
+          true
+        );
+      }
     } catch (error) {
       console.error(error);
     }

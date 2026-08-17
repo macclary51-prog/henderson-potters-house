@@ -8,17 +8,72 @@
   >
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Ministries - The Henderson Potter&#x27;s House">
+  <meta name="description" content="Explore ministries and ways to connect, serve, and grow in faith at The Henderson Potter's House in Henderson, Nevada.">
+  <meta name="theme-color" content="#07182c">
+
   <title>Ministries | The Henderson Potter's House</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="canonical" href="https://www.hendersonpotterhouse.com/ministries.html">
+
+  <meta property="og:title" content="Ministries | The Henderson Potter's House">
+  <meta property="og:description" content="Explore ministries and ways to connect, serve, and grow in faith at The Henderson Potter's House in Henderson, Nevada.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.hendersonpotterhouse.com/ministries.html">
+  <meta property="og:image" content="https://www.hendersonpotterhouse.com/church_logo.png">
+  <meta property="og:image:alt" content="The Potter's House Christian Fellowship Church of Henderson logo">
+  <meta property="og:site_name" content="The Henderson Potter's House">
+  <meta property="og:locale" content="en_US">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Ministries | The Henderson Potter's House">
+  <meta name="twitter:description" content="Explore ministries and ways to connect, serve, and grow in faith at The Henderson Potter's House in Henderson, Nevada.">
+  <meta name="twitter:image" content="https://www.hendersonpotterhouse.com/church_logo.png">
+  <meta name="twitter:image:alt" content="The Potter's House Christian Fellowship Church of Henderson logo">
+
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="favicon-512x512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
+  <link rel="stylesheet" href="style.css?v=10">
   <link rel="stylesheet" href="staff-inline.css?v=17">
+  <noscript><link rel="stylesheet" href="noscript.css"></noscript>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://www.hendersonpotterhouse.com/ministries.html#webpage",
+    "url": "https://www.hendersonpotterhouse.com/ministries.html",
+    "name": "Ministries | The Henderson Potter's House",
+    "description": "Explore ministries and ways to connect, serve, and grow in faith at The Henderson Potter's House in Henderson, Nevada.",
+    "isPartOf": {
+      "@id": "https://www.hendersonpotterhouse.com/#website"
+    },
+    "about": {
+      "@id": "https://www.hendersonpotterhouse.com/#church"
+    }
+  }
+  </script>
+
+  <script type="application/ld+json" id="dynamicContentSchema">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Church Ministries",
+    "itemListElement": []
+  }
+  </script>
 </head>
 
 <body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
       <a class="brand" href="index.html" aria-label="The Henderson Potter's House home">
-        <div class="logo header-logo" role="img" aria-label="The Henderson Potter's House logo"></div>
+        <div class="logo header-logo" aria-hidden="true"></div>
 
         <div class="brand-text">
           <strong>The Henderson Potter's House</strong>
@@ -26,13 +81,17 @@
         </div>
       </a>
 
-      <nav class="nav-links" id="navLinks">
+      <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
         <a href="index.html">Home</a>
         <a href="announcements.html">Announcements</a>
         <a href="events.html">Events</a>
-        <a href="ministries.html" class="active">Ministries</a>
+        <a href="services.html">Services</a>
+        <a href="ministries.html" class="active" aria-current="page">Ministries</a>
         <a href="sermons.html">Sermons</a>
+        <a href="giving.html">Giving</a>
+        <a href="connect.html">Connect</a>
         <a href="prayer.html">Prayer</a>
+        <a href="contact.html">Contact</a>
         <a class="staff-link" href="staff-login.html">Staff</a>
       </nav>
 
@@ -49,7 +108,7 @@
     </div>
   </header>
 
-  <main>
+<main id="mainContent">
     <section class="page-hero">
       <div class="container">
         <div class="page-hero-card">
@@ -146,6 +205,39 @@
             Details
             <textarea name="details" rows="7" placeholder="Ministry information" required></textarea>
           </label>
+
+          <label class="staff-inline-full">
+            Photo link
+            <input
+              type="text"
+              name="imageUrl"
+              placeholder="https://... or photos/example.jpg"
+            >
+            <small class="staff-inline-media-help">
+              Optional. Paste a direct photo link or a photo path from this website.
+            </small>
+          </label>
+
+          <label class="staff-inline-full">
+            Photo description
+            <input
+              type="text"
+              name="imageAlt"
+              placeholder="Describe the photo for visitors who cannot see it"
+            >
+          </label>
+
+          <label class="staff-inline-full">
+            Video link
+            <input
+              type="text"
+              name="videoUrl"
+              placeholder="YouTube, Facebook, or direct video link"
+            >
+            <small class="staff-inline-media-help">
+              Optional. YouTube videos play on the page; other supported links open in a new tab.
+            </small>
+          </label>
         
             </div>
 
@@ -195,8 +287,9 @@
           class="content-grid"
           id="publicContentGrid"
           data-collection="ministries"
+          aria-live="polite"
         >
-          <div class="empty-state">Loading church information...</div>
+          <div class="empty-state">Ministry information will appear here when available.</div>
         </div>
       </div>
     </section>
@@ -205,7 +298,7 @@
   <footer>
     <div class="container footer-wrap">
       <div class="footer-brand">
-        <div class="logo footer-logo" role="img" aria-label="The Henderson Potter's House logo"></div>
+        <div class="logo footer-logo" aria-hidden="true"></div>
 
         <div>
           <strong>The Henderson Potter's House</strong>
@@ -213,105 +306,16 @@
         </div>
       </div>
 
-      <p>© <span id="year"></span> The Henderson Potter's House.</p>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="privacy.html">Privacy</a>
+        <a href="connect.html">Connect</a>
+        <a href="contact.html">Contact</a>
+        <a href="staff-login.html">Staff</a>
+      </nav>
+
+      <p>© 2026 The Henderson Potter's House</p>
     </div>
   </footer>
-
-  <div
-    class="staff-inline-modal-backdrop"
-    id="staffInlineAccountsModal"
-    hidden
-  >
-    <div
-      class="staff-inline-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="staffInlineAccountsTitle"
-    >
-      <div class="staff-inline-modal-heading">
-        <div>
-          <span>Pastor Only</span>
-          <h2 id="staffInlineAccountsTitle">Ministry Accounts</h2>
-          <p>Create accounts or remove and restore website access.</p>
-        </div>
-
-        <button
-          class="staff-inline-close"
-          id="staffInlineAccountsClose"
-          type="button"
-          aria-label="Close ministry accounts"
-        >
-          ×
-        </button>
-      </div>
-
-      <div class="staff-inline-account-layout">
-        <form id="staffInlineAccountForm">
-          <h3>Create Ministry Account</h3>
-
-          <label>
-            Full name
-            <input
-              id="staffInlineAccountName"
-              type="text"
-              placeholder="Ministry member's name"
-              required
-            >
-          </label>
-
-          <label>
-            Email
-            <input
-              id="staffInlineAccountEmail"
-              type="email"
-              placeholder="member@email.com"
-              required
-            >
-          </label>
-
-          <label>
-            Temporary password
-            <input
-              id="staffInlineAccountPassword"
-              type="password"
-              minlength="12"
-              maxlength="128"
-              pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{12,}"
-              title="Use at least 12 characters with an uppercase letter, a lowercase letter, and a number."
-              placeholder="12+ characters with upper, lower, and number"
-              autocomplete="new-password"
-              aria-describedby="staffInlineAccountPasswordHelp"
-              required
-            >
-            <small class="staff-password-help" id="staffInlineAccountPasswordHelp">
-              Use 12–128 characters with an uppercase letter, a lowercase letter, and a number.
-            </small>
-          </label>
-
-          <button class="button button-primary" type="submit">
-            Create Account
-          </button>
-
-          <div
-            class="staff-inline-status"
-            id="staffInlineAccountStatus"
-            role="status"
-          ></div>
-        </form>
-
-        <div>
-          <h3>Current Ministry Accounts</h3>
-
-          <div
-            class="staff-inline-account-list"
-            id="staffInlineAccountList"
-          >
-            <div class="staff-inline-empty">Loading accounts...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <div
     class="staff-inline-toast"
@@ -320,7 +324,7 @@
     aria-live="polite"
   ></div>
 
-  <script src="script.js"></script>
-  <script type="module" src="public-content.js?v=18"></script>
+  <script src="script.js?v=10"></script>
+  <script type="module" src="public-content.js?v=21"></script>
 </body>
 </html>

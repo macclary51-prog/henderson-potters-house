@@ -8,17 +8,65 @@
   >
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta
-    name="description"
-    content="Church location and social media links for The Henderson Potter's House"
-  >
-  <title>Connect | The Henderson Potter's House</title>
+  <meta name="description" content="Find The Henderson Potter's House location, phone number, directions, and verified social media links in Henderson, Nevada.">
+  <meta name="theme-color" content="#07182c">
 
-  <link rel="stylesheet" href="style.css">
+  <title>Connect | The Henderson Potter's House</title>
+  <link rel="canonical" href="https://www.hendersonpotterhouse.com/connect.html">
+
+  <meta property="og:title" content="Connect | The Henderson Potter's House">
+  <meta property="og:description" content="Find The Henderson Potter's House location, phone number, directions, and verified social media links in Henderson, Nevada.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.hendersonpotterhouse.com/connect.html">
+  <meta property="og:image" content="https://www.hendersonpotterhouse.com/church_logo.png">
+  <meta property="og:image:alt" content="The Potter's House Christian Fellowship Church of Henderson logo">
+  <meta property="og:site_name" content="The Henderson Potter's House">
+  <meta property="og:locale" content="en_US">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Connect | The Henderson Potter's House">
+  <meta name="twitter:description" content="Find The Henderson Potter's House location, phone number, directions, and verified social media links in Henderson, Nevada.">
+  <meta name="twitter:image" content="https://www.hendersonpotterhouse.com/church_logo.png">
+  <meta name="twitter:image:alt" content="The Potter's House Christian Fellowship Church of Henderson logo">
+
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="favicon-512x512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
+  <link rel="stylesheet" href="style.css?v=10">
   <link rel="stylesheet" href="connect.css?v=1">
+  <noscript><link rel="stylesheet" href="noscript.css"></noscript>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://www.hendersonpotterhouse.com/connect.html#webpage",
+    "url": "https://www.hendersonpotterhouse.com/connect.html",
+    "name": "Connect | The Henderson Potter's House",
+    "description": "Find The Henderson Potter's House location, phone number, directions, and verified social media links in Henderson, Nevada.",
+    "isPartOf": {
+      "@id": "https://www.hendersonpotterhouse.com/#website"
+    },
+    "about": {
+      "@type": "Church",
+      "@id": "https://www.hendersonpotterhouse.com/#church",
+      "sameAs": [
+        "https://www.facebook.com/p/Henderson-Potters-House-61552769870767/",
+        "https://www.instagram.com/hendersonphcf/",
+        "https://www.youtube.com/@thepottershouseofhenderson5075"
+      ]
+    }
+  }
+  </script>
 </head>
 
 <body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
       <a
@@ -28,8 +76,7 @@
       >
         <div
           class="logo header-logo"
-          role="img"
-          aria-label="The Henderson Potter's House logo"
+          aria-hidden="true"
         ></div>
 
         <div class="brand-text">
@@ -38,7 +85,7 @@
         </div>
       </a>
 
-      <nav class="nav-links" id="navLinks">
+      <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
         <a href="index.html">Home</a>
         <a href="announcements.html">Announcements</a>
         <a href="events.html">Events</a>
@@ -46,8 +93,9 @@
         <a href="ministries.html">Ministries</a>
         <a href="sermons.html">Sermons</a>
         <a href="giving.html">Giving</a>
-        <a href="connect.html" class="active">Connect</a>
+        <a href="connect.html" class="active" aria-current="page">Connect</a>
         <a href="prayer.html">Prayer</a>
+        <a href="contact.html">Contact</a>
         <a class="staff-link" href="staff-login.html">Staff</a>
       </nav>
 
@@ -64,7 +112,7 @@
     </div>
   </header>
 
-  <main>
+<main id="mainContent">
     <section class="page-hero">
       <div class="container">
         <div class="page-hero-card">
@@ -125,6 +173,7 @@
             <label>
               Link type
               <select name="type" required>
+                <option value="" selected disabled>Choose a link type</option>
                 <option value="location">Location / Directions</option>
                 <option value="facebook">Facebook</option>
                 <option value="instagram">Instagram</option>
@@ -219,8 +268,12 @@
           </button>
         </div>
 
-        <div class="connect-grid" id="connectGrid">
-          <div class="connect-empty">Loading church links...</div>
+        <div class="connect-grid" id="connectGrid" aria-live="polite">
+          <div class="connect-empty">
+            Find the church at 746 S Boulder Hwy, Henderson, NV 89015.
+            <a href="https://www.google.com/maps/search/?api=1&amp;query=746+S+Boulder+Hwy%2C+Henderson%2C+NV+89015" target="_blank" rel="noopener noreferrer">Get directions</a>
+            or call <a href="tel:+17026007632">(702) 600-7632</a>.
+          </div>
         </div>
 
         <div class="connect-safety-note">
@@ -235,11 +288,7 @@
   <footer>
     <div class="container footer-wrap">
       <div class="footer-brand">
-        <div
-          class="logo footer-logo"
-          role="img"
-          aria-label="The Henderson Potter's House logo"
-        ></div>
+        <div class="logo footer-logo" aria-hidden="true"></div>
 
         <div>
           <strong>The Henderson Potter's House</strong>
@@ -247,7 +296,14 @@
         </div>
       </div>
 
-      <p>© <span id="year"></span> The Henderson Potter's House.</p>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="privacy.html">Privacy</a>
+        <a href="connect.html">Connect</a>
+        <a href="contact.html">Contact</a>
+        <a href="staff-login.html">Staff</a>
+      </nav>
+
+      <p>© 2026 The Henderson Potter's House</p>
     </div>
   </footer>
 
@@ -258,7 +314,7 @@
     aria-live="polite"
   ></div>
 
-  <script src="script.js"></script>
-  <script type="module" src="connect.js?v=3"></script>
+  <script src="script.js?v=10"></script>
+  <script type="module" src="connect.js?v=4"></script>
 </body>
 </html>

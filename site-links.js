@@ -21,8 +21,28 @@ const TYPE_ICONS = {
   other: "🔗"
 };
 
+const SUPPORTED_TYPES =
+  new Set(
+    Object.keys(TYPE_ICONS)
+  );
+
+
+function normalizeType(type) {
+  const normalized =
+    String(type || "")
+      .trim()
+      .toLowerCase();
+
+  return SUPPORTED_TYPES.has(normalized)
+    ? normalized
+    : "other";
+}
+
 
 function normalizeLink(type, value) {
+  const normalizedType =
+    normalizeType(type);
+
   const text =
     String(value || "").trim();
 
@@ -30,16 +50,38 @@ function normalizeLink(type, value) {
     return "";
   }
 
-  if (type === "email") {
-    return text.startsWith("mailto:")
-      ? text
-      : `mailto:${text}`;
+  if (normalizedType === "email") {
+    const email =
+      text.replace(/^mailto:/i, "");
+
+    if (
+      !email ||
+      /[\r\n]/.test(email)
+    ) {
+      return "";
+    }
+
+    try {
+      const url =
+        new URL(`mailto:${email}`);
+
+      return url.protocol === "mailto:"
+        ? url.href
+        : "";
+    } catch (error) {
+      return "";
+    }
   }
 
-  if (type === "phone") {
-    return text.startsWith("tel:")
-      ? text
-      : `tel:${text.replace(/[^\d+]/g, "")}`;
+  if (normalizedType === "phone") {
+    const phone =
+      text
+        .replace(/^tel:/i, "")
+        .replace(/[^\d+]/g, "");
+
+    return /^\+?\d{3,}$/.test(phone)
+      ? `tel:${phone}`
+      : "";
   }
 
   try {
@@ -167,6 +209,16 @@ function ensureContainer() {
     shell.className =
       "global-church-links";
 
+    shell.setAttribute(
+      "role",
+      "navigation"
+    );
+
+    shell.setAttribute(
+      "aria-label",
+      "Church social and contact links"
+    );
+
     const title =
       document.createElement("span");
 
@@ -212,12 +264,17 @@ function renderLinks(items) {
 
   list.replaceChildren();
 
-  items.slice(0, 8).forEach(function (item) {
+  const visibleItems =
+    items.filter(function (item) {
+      return item.data.hidden !== true;
+  });
+
+  visibleItems.slice(0, 8).forEach(function (item) {
     const data =
       item.data;
 
     const type =
-      data.type || "other";
+      normalizeType(data.type);
 
     const href =
       normalizeLink(
@@ -251,6 +308,11 @@ function renderLinks(items) {
 
     icon.className =
       "global-church-links-icon";
+
+    icon.setAttribute(
+      "aria-hidden",
+      "true"
+    );
 
     icon.textContent =
       TYPE_ICONS[type] ||

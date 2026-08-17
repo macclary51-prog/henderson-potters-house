@@ -11,23 +11,116 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-TNJJXQ8GCK"></script>
   <script src="analytics.js?v=1"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta
-    name="description"
-    content="Home - The Henderson Potter's House"
-  >
-  <title>Home | The Henderson Potter's House</title>
+  <meta name="description" content="Visit The Henderson Potter's House in Henderson, Nevada for worship, prayer, biblical preaching, fellowship, and current church updates.">
+  <meta name="theme-color" content="#07182c">
 
-  <link rel="stylesheet" href="style.css?v=5">
+  <title>Home | The Henderson Potter's House</title>
+  <link rel="canonical" href="https://www.hendersonpotterhouse.com/">
+
+  <meta property="og:title" content="Home | The Henderson Potter's House">
+  <meta property="og:description" content="Visit The Henderson Potter's House in Henderson, Nevada for worship, prayer, biblical preaching, fellowship, and current church updates.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.hendersonpotterhouse.com/">
+  <meta property="og:image" content="https://www.hendersonpotterhouse.com/church_logo.png">
+  <meta property="og:image:alt" content="The Potter's House Christian Fellowship Church of Henderson logo">
+  <meta property="og:site_name" content="The Henderson Potter's House">
+  <meta property="og:locale" content="en_US">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Home | The Henderson Potter's House">
+  <meta name="twitter:description" content="Visit The Henderson Potter's House in Henderson, Nevada for worship, prayer, biblical preaching, fellowship, and current church updates.">
+  <meta name="twitter:image" content="https://www.hendersonpotterhouse.com/church_logo.png">
+  <meta name="twitter:image:alt" content="The Potter's House Christian Fellowship Church of Henderson logo">
+
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="favicon-512x512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
+  <link rel="stylesheet" href="style.css?v=10">
   <link rel="stylesheet" href="home-content.css?v=2">
+  <noscript><link rel="stylesheet" href="noscript.css"></noscript>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Church",
+        "@id": "https://www.hendersonpotterhouse.com/#church",
+        "name": "The Henderson Potter's House",
+        "description": "A Christian church serving Henderson, Nevada.",
+        "url": "https://www.hendersonpotterhouse.com/",
+        "logo": "https://www.hendersonpotterhouse.com/church_logo.png",
+        "telephone": "+1-702-600-7632",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "746 S Boulder Hwy",
+          "addressLocality": "Henderson",
+          "addressRegion": "NV",
+          "postalCode": "89015",
+          "addressCountry": "US"
+        },
+        "hasMap": "https://www.google.com/maps/search/?api=1&query=746+S+Boulder+Hwy%2C+Henderson%2C+NV+89015",
+        "employee": {
+          "@type": "Person",
+          "name": "William Rice",
+          "jobTitle": "Pastor"
+        },
+        "sameAs": [
+          "https://www.facebook.com/p/Henderson-Potters-House-61552769870767/",
+          "https://www.instagram.com/hendersonphcf/",
+          "https://www.youtube.com/@thepottershouseofhenderson5075"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://www.hendersonpotterhouse.com/#website",
+        "url": "https://www.hendersonpotterhouse.com/",
+        "name": "The Henderson Potter's House",
+        "publisher": {
+          "@id": "https://www.hendersonpotterhouse.com/#church"
+        }
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://www.hendersonpotterhouse.com/#webpage",
+        "url": "https://www.hendersonpotterhouse.com/",
+        "name": "Home | The Henderson Potter's House",
+        "description": "Public church information, services, updates, and Android app access for The Henderson Potter's House.",
+        "isPartOf": {
+          "@id": "https://www.hendersonpotterhouse.com/#website"
+        },
+        "about": {
+          "@id": "https://www.hendersonpotterhouse.com/#church"
+        }
+      },
+      {
+        "@type": "MobileApplication",
+        "@id": "https://www.hendersonpotterhouse.com/#android-app",
+        "name": "The Henderson Potter's House Android App",
+        "operatingSystem": "Android 7.0 or newer",
+        "softwareVersion": "1.0.0",
+        "downloadUrl": "https://www.hendersonpotterhouse.com/downloads/henderson-potters-house.apk",
+        "publisher": {
+          "@id": "https://www.hendersonpotterhouse.com/#church"
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
   <header class="site-header">
     <div class="container nav-wrap">
       <a class="brand" href="index.html">
         <div
           class="logo header-logo"
-          role="img"
-          aria-label="The Henderson Potter's House logo"
+          aria-hidden="true"
         ></div>
 
         <div class="brand-text">
@@ -36,8 +129,8 @@
         </div>
       </a>
 
-      <nav class="nav-links" id="navLinks">
-        <a href="index.html" class="active">Home</a>
+      <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
+        <a href="index.html" class="active" aria-current="page">Home</a>
         <a href="announcements.html">Announcements</a>
         <a href="events.html">Events</a>
         <a href="services.html">Services</a>
@@ -46,6 +139,7 @@
         <a href="giving.html">Giving</a>
         <a href="connect.html">Connect</a>
         <a href="prayer.html">Prayer</a>
+        <a href="contact.html">Contact</a>
         <a class="staff-link" href="staff-login.html">Staff</a>
       </nav>
 
@@ -62,7 +156,7 @@
     </div>
   </header>
 
-  <main>
+<main id="mainContent">
     <section class="hero">
       <div class="container">
         <div class="hero-card">
@@ -84,6 +178,12 @@
               through an active relationship with Jesus. God has a unique purpose
               for each individual, and we invite you to come discover His plan for
               your life!
+            </p>
+
+            <p class="hero-contact-line">
+              <strong>Pastor William Rice</strong> ·
+              746 S Boulder Hwy, Henderson, NV 89015 ·
+              <a href="tel:+17026007632">(702) 600-7632</a>
             </p>
 
             <div class="hero-actions">
@@ -112,7 +212,9 @@
       </div>
     </section>
 
-    <section class="quick-links">
+    <section class="quick-links" aria-labelledby="quickLinksTitle">
+      <h2 class="visually-hidden" id="quickLinksTitle">Explore church information</h2>
+
       <div class="container quick-grid">
         <a class="quick-card" data-quick-type="announcements" href="announcements.html">
           <div class="quick-icon">
@@ -206,7 +308,9 @@
           aria-live="polite"
         >
           <div class="home-services-empty">
-            Loading service times...
+            Service times have not been published yet. Call
+            <a href="tel:+17026007632">(702) 600-7632</a> or visit the
+            <a href="contact.html">Contact page</a> for the current schedule.
           </div>
         </div>
       </div>
@@ -228,8 +332,10 @@
             </p>
 
             <ul class="app-download-details" aria-label="Android app details">
-              <li>Version 1.0.0</li>
-              <li>Android 7.0 or newer</li>
+              <li id="appVersion">Version 1.0.0</li>
+              <li id="appVersionCode">Build 1</li>
+              <li id="appMinimumAndroid">Android 7.0 or newer</li>
+              <li id="appReleaseDate">Updated August 8, 2026</li>
             </ul>
 
             <a
@@ -251,8 +357,17 @@
             </a>
 
             <p class="app-install-note">
-              Your Android phone may ask you to allow installation from your browser.
+              This app is installed directly rather than through the Play Store.
+              Android may ask you to allow installation from your browser; only
+              continue if you intentionally downloaded it from this official website.
             </p>
+
+            <div class="app-download-security">
+              <strong>APK integrity check</strong>
+              Compare this SHA-256 checksum with the downloaded file if you want to
+              verify that the file was not changed during download.
+              <code id="appChecksum">35B54070F94B94DAA69E4DB24A43E03CAB96D1BC798ADF4A73C4AA245B657DF5</code>
+            </div>
           </div>
 
           <a
@@ -438,9 +553,12 @@
           </button>
         </div>
 
-        <div class="content-grid" id="homeCardsGrid">
+        <div class="content-grid" id="homeCardsGrid" aria-live="polite">
           <div class="home-empty-state">
-            Loading homepage information...
+            Church updates will appear here when available. Visit
+            <a href="announcements.html">Announcements</a>,
+            <a href="events.html">Events</a>, or
+            <a href="connect.html">Connect</a> for more information.
           </div>
         </div>
       </div>
@@ -450,11 +568,7 @@
   <footer>
     <div class="container footer-wrap">
       <div class="footer-brand">
-        <div
-          class="logo footer-logo"
-          role="img"
-          aria-label="The Henderson Potter's House logo"
-        ></div>
+        <div class="logo footer-logo" aria-hidden="true"></div>
 
         <div>
           <strong>The Henderson Potter's House</strong>
@@ -462,7 +576,14 @@
         </div>
       </div>
 
-      <p>© <span id="year"></span> The Henderson Potter's House.</p>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="privacy.html">Privacy</a>
+        <a href="connect.html">Connect</a>
+        <a href="contact.html">Contact</a>
+        <a href="staff-login.html">Staff</a>
+      </nav>
+
+      <p>© 2026 The Henderson Potter's House</p>
     </div>
   </footer>
 
@@ -473,7 +594,8 @@
     aria-live="polite"
   ></div>
 
-  <script src="script.js"></script>
-  <script type="module" src="home-content.js?v=2"></script>
+  <script src="script.js?v=10"></script>
+  <script type="module" src="app-version.js?v=1"></script>
+  <script type="module" src="home-content.js?v=3"></script>
 </body>
 </html>
